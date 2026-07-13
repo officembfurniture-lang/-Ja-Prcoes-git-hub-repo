@@ -4,7 +4,10 @@
   "distribution": {
     "channel": "public_github_action_repository",
     "evidence": "repository URL plus immutable commit SHA",
-    "state": "pending_publication_readback"
+    "repository": "https://github.com/officembfurniture-lang/-Ja-Prcoes-git-hub-repo",
+    "verified_commit": "9401f04303d141e38052b54d370797d7ae4a2eae",
+    "readback_file_count": 7,
+    "state": "verified"
   },
   "external_use": {
     "gate": "independently controlled repository run bound to input provenance, run URL and result hash",
