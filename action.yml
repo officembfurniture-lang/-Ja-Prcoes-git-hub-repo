@@ -1,0 +1,43 @@
+name: HORYZONT Grid-Flexible Workload Passport
+description: Compare baseline and grid-aware workload schedules without claiming a physical outcome.
+inputs:
+  workload:
+    description: Path to a provenance-labelled workload passport JSON.
+    required: true
+  output:
+    description: Result JSON path.
+    required: false
+    default: grid-flex-result.json
+outputs:
+  result-hash:
+    description: SHA-256 of the deterministic result JSON.
+    value: ${{ steps.analyze.outputs.result_hash }}
+  shifted-energy-kwh:
+    description: Planned shifted energy; not metered physical savings.
+    value: ${{ steps.analyze.outputs.shifted_energy_kwh }}
+runs:
+  using: composite
+  steps:
+    - id: analyze
+      shell: bash
+      env:
+        HORYZONT_WORKLOAD: ${{ inputs.workload }}
+        HORYZONT_OUTPUT: ${{ inputs.output }}
+      run: |
+        set -euo pipefail
+        python "${GITHUB_ACTION_PATH}/src/horyzont/probes/flex_workload.py" \
+          "$HORYZONT_WORKLOAD" --output "$HORYZONT_OUTPUT"
+        python - "$HORYZONT_OUTPUT" "$GITHUB_OUTPUT" <<'PY'
+        import hashlib
+        import json
+        import sys
+        from pathlib import Path
+
+        output_path = Path(sys.argv[1])
+        result = json.loads(output_path.read_text(encoding="utf-8"))
+        if result["truth_boundary"]["physical_savings_claimed"]:
+            raise SystemExit("physical outcome claim is forbidden")
+        with Path(sys.argv[2]).open("a", encoding="utf-8") as output:
+            output.write(f"result_hash={hashlib.sha256(output_path.read_bytes()).hexdigest()}\n")
+            output.write(f"shifted_energy_kwh={result['planned_shifted_energy_kwh']}\n")
+        PY
