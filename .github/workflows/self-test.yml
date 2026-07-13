@@ -1,0 +1,28 @@
+name: Validate public probe
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: flex
+        uses: ./
+        with:
+          workload: examples/workload.json
+          output: grid-flex-result.json
+      - name: Enforce truth boundary
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          result = json.loads(Path("grid-flex-result.json").read_text())
+          assert result["moved_task_ids"] == ["batch-evaluation"]
+          assert result["truth_boundary"]["physical_savings_claimed"] is False
+          PY
