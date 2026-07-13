@@ -1,0 +1,15 @@
+{
+  "schema": "horyzont.value-exchange/v0.1",
+  "policy": "outcome_before_capture",
+  "rail": {
+    "network": "Polkadot",
+    "asset": "DOT",
+    "address": "13EBZHRxbPAGG1bNRpnnzZHqwHNv9HDbXiyfewu7EJUrHW5Y",
+    "public_source": "https://agent-continuity-check.silentmodee.chatgpt.site/",
+    "address_control_verified": false,
+    "receipt_telemetry": "https://polkadot.subscan.io/account/13EBZHRxbPAGG1bNRpnnzZHqwHNv9HDbXiyfewu7EJUrHW5Y"
+  },
+  "capture_state": "none",
+  "return_state": "none",
+  "warning": "Send DOT only on the Polkadot network. Publication of an address is not capture, return or proof of control."
+}
