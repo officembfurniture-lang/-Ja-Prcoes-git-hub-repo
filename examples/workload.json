@@ -1,0 +1,26 @@
+{
+  "input_kind": "synthetic_public_self_test",
+  "slot_minutes": 30,
+  "site_capacity_kw": 20,
+  "grid_stress": [0.9, 0.8, 0.3, 0.2, 0.4, 0.7],
+  "tasks": [
+    {
+      "id": "priority-inference",
+      "power_kw": 8,
+      "duration_slots": 2,
+      "earliest_slot": 0,
+      "latest_end_slot": 2,
+      "deferrable": false,
+      "priority": 100
+    },
+    {
+      "id": "batch-evaluation",
+      "power_kw": 10,
+      "duration_slots": 2,
+      "earliest_slot": 0,
+      "latest_end_slot": 6,
+      "deferrable": true,
+      "priority": 40
+    }
+  ]
+}
