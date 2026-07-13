@@ -1,0 +1,29 @@
+{
+  "schema": "horyzont.public-value-circuit/v0.1",
+  "probe_id": "P-0003",
+  "distribution": {
+    "channel": "public_github_action_repository",
+    "evidence": "repository URL plus immutable commit SHA",
+    "state": "pending_publication_readback"
+  },
+  "external_use": {
+    "gate": "independently controlled repository run bound to input provenance, run URL and result hash",
+    "state": "none"
+  },
+  "outcome": {
+    "gate": "metered before/after workload operation under declared service constraints",
+    "state": "none"
+  },
+  "capture": {
+    "routes": [
+      "post-outcome voluntary DOT contribution",
+      "future outcome-linked software license",
+      "future share of independently verified flexibility value"
+    ],
+    "state": "none"
+  },
+  "return": {
+    "gate": "independently observed settlement to an operator-controlled rail",
+    "state": "none"
+  }
+}
