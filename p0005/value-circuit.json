@@ -4,7 +4,11 @@
   "distribution": {
     "channel": "public_github_action_subdirectory",
     "path": "p0005",
-    "state": "pending_publication_readback"
+    "repository": "https://github.com/officembfurniture-lang/-Ja-Prcoes-git-hub-repo",
+    "package_commit": "62feb7ce4190989634b5f0da37f4bc4cc82a18ed",
+    "discovery_commit": "24d30f01ad8e7dd5d0f2189362214c840105c2fa",
+    "readback_file_count": 5,
+    "state": "verified"
   },
   "external_use": {
     "gate": "successful workflow in a non-owner repository, pinned to an immutable commit and bound to an emitted protocol hash",
