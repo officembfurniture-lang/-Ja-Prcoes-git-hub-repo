@@ -1,0 +1,48 @@
+{
+  "id": "MP-DEMO-0001",
+  "question": "Does adding a provenance completeness check reduce unresolved lineage gaps in the local demonstration dataset?",
+  "hypothesis": "A frozen completeness check will reduce unresolved lineage gaps relative to the unvalidated baseline.",
+  "anomaly": {
+    "metric": "unresolved_lineage_gap_rate",
+    "observed": 0.42,
+    "unit": "ratio",
+    "source_ref": "artifact://baseline/material-lineage-demo"
+  },
+  "variables": [
+    {
+      "name": "provenance_check_enabled",
+      "role": "independent",
+      "unit": "boolean"
+    },
+    {
+      "name": "unresolved_lineage_gap_rate",
+      "role": "dependent",
+      "unit": "ratio"
+    },
+    {
+      "name": "dataset_version",
+      "role": "control",
+      "unit": "identifier"
+    }
+  ],
+  "measurement": {
+    "source_ref": "dataset://horyzont/material-lineage-demo-v1",
+    "sample_count": 20,
+    "sampling_unit": "component record",
+    "comparison": "same frozen dataset with and without the check"
+  },
+  "decision_rule": {
+    "metric": "unresolved_lineage_gap_rate",
+    "operator": "<=",
+    "threshold": 0.25
+  },
+  "counterfactual": "Run the same frozen records without the provenance completeness check.",
+  "hazard": {
+    "involves_people": false,
+    "involves_living_systems": false,
+    "involves_hazardous_materials": false,
+    "involves_critical_infrastructure": false
+  },
+  "authority": "A1",
+  "expires_at": "2026-10-01T00:00:00Z"
+}
