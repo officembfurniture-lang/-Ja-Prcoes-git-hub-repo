@@ -1,0 +1,33 @@
+{
+  "schema": "horyzont.public-value-circuit/v0.1",
+  "probe_id": "P-0005",
+  "distribution": {
+    "channel": "public_github_action_subdirectory",
+    "path": "p0005",
+    "state": "pending_publication_readback"
+  },
+  "external_use": {
+    "gate": "successful workflow in a non-owner repository, pinned to an immutable commit and bound to an emitted protocol hash",
+    "state": "none"
+  },
+  "outcome": {
+    "gate": "independently collected measurements bound to the same frozen protocol hash",
+    "state": "none"
+  },
+  "capture": {
+    "routes": [
+      "future measurement-instrument license",
+      "future curated protocol service"
+    ],
+    "state": "none"
+  },
+  "return": {
+    "gate": "independently observed settlement to an operator-controlled rail",
+    "state": "none"
+  },
+  "truth_boundary": {
+    "publication_is_external_use": false,
+    "protocol_compilation_is_experiment_execution": false,
+    "capture_or_return_claimed": false
+  }
+}
