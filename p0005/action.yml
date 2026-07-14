@@ -1,0 +1,44 @@
+name: Preregistered Measurement Compiler
+description: Compile a bounded JSON draft into a frozen, hash-addressed measurement protocol without executing an experiment.
+inputs:
+  draft:
+    description: Path to the measurement-draft JSON in the caller workspace.
+    required: true
+  output:
+    description: Result JSON path in the caller workspace.
+    required: false
+    default: measurement-protocol.json
+outputs:
+  protocol-hash:
+    description: SHA-256 identifier embedded in the frozen protocol.
+    value: ${{ steps.compile.outputs.protocol_hash }}
+  review-required:
+    description: Whether the draft declares people, living systems, hazardous materials or critical infrastructure.
+    value: ${{ steps.compile.outputs.review_required }}
+runs:
+  using: composite
+  steps:
+    - id: compile
+      name: Compile and expose the protocol identity
+      shell: bash
+      env:
+        HORYZONT_DRAFT: ${{ inputs.draft }}
+        HORYZONT_OUTPUT: ${{ inputs.output }}
+      run: |
+        set -euo pipefail
+        python "${GITHUB_ACTION_PATH}/src/horyzont/probes/measurement_compiler.py" \
+          "$HORYZONT_DRAFT" --output "$HORYZONT_OUTPUT"
+        python - "$HORYZONT_OUTPUT" "$GITHUB_OUTPUT" <<'PY'
+        import json
+        import sys
+        from pathlib import Path
+
+        protocol = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+        protocol_hash = protocol.get("protocol_hash", "")
+        if len(protocol_hash) != 64:
+            raise SystemExit("compiler did not emit a SHA-256 protocol_hash")
+        review_required = str(bool(protocol["review"]["required_before_execution"])).lower()
+        with Path(sys.argv[2]).open("a", encoding="utf-8") as output:
+            output.write(f"protocol_hash={protocol_hash}\n")
+            output.write(f"review_required={review_required}\n")
+        PY
