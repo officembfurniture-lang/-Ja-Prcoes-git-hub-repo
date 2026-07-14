@@ -45,3 +45,17 @@ The scheduler emits a plan. It never claims physical energy, emissions or financ
 An optional public DOT return rail is recorded in `value-exchange.json`. It was already published by an earlier HORYZONT probe. The repository does not prove control of the address, does not request payment before a verified outcome and reports capture and return as zero until an on-chain receipt is independently observed.
 
 No open-source license or commercial license is granted by this research publication. Reuse beyond GitHub's platform permissions requires a separate license decision.
+
+## Portfolio probe P-0005 — Preregistered Measurement Compiler
+
+P-0005 freezes a bounded measurement draft into a deterministic, hash-addressed protocol. It does not execute an experiment or establish causality.
+
+```yaml
+- id: protocol
+  uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0005@62feb7ce4190989634b5f0da37f4bc4cc82a18ed
+  with:
+    draft: measurement-draft.json
+    output: measurement-protocol.json
+```
+
+See [p0005/README.md](p0005/README.md) and [p0005/value-circuit.json](p0005/value-circuit.json). This immutable publication is distribution only. A non-owner successful workflow run bound to input provenance and the emitted protocol hash is only an external-use candidate; independently collected measurements bound to the same hash are a separate outcome candidate.
