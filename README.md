@@ -59,3 +59,17 @@ P-0005 freezes a bounded measurement draft into a deterministic, hash-addressed 
 ```
 
 See [p0005/README.md](p0005/README.md) and [p0005/value-circuit.json](p0005/value-circuit.json). This immutable publication is distribution only. A non-owner successful workflow run bound to input provenance and the emitted protocol hash is only an external-use candidate; independently collected measurements bound to the same hash are a separate outcome candidate.
+
+## Portfolio probe P-0006 — Material Lineage Opportunity Map
+
+P-0006 deterministically joins caller-provided material-source and demand records. It emits coordination candidates without claiming physical transfer, ownership, compliance or savings.
+
+```yaml
+- id: lineage
+  uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0006@32773ad94fcd70bb8251a9f1d6d8cdb450e40151
+  with:
+    dataset: material-lineage.json
+    output: material-lineage-opportunity-map.json
+```
+
+See [p0006/README.md](p0006/README.md) and [p0006/value-circuit.json](p0006/value-circuit.json). This immutable package is distribution only. A successful non-owner run bound to immutable code, input provenance and the deterministic result hash is only an external-use candidate; physical transfer, verified benefit, capture and return remain separate evidence gates.
