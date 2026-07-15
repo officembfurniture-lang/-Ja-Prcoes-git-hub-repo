@@ -1,0 +1,52 @@
+name: Material Lineage Opportunity Map
+description: Build a deterministic candidate map from caller-provided provenance-bearing material source and demand data.
+inputs:
+  dataset:
+    description: Path to a material sources and demands JSON file in the caller workspace.
+    required: true
+  output:
+    description: Result JSON path in the caller workspace.
+    required: false
+    default: material-lineage-opportunity-map.json
+outputs:
+  result-hash:
+    description: SHA-256 of the deterministic result JSON.
+    value: ${{ steps.map.outputs.result_hash }}
+  candidate-count:
+    description: Number of coordination candidates; this is not evidence of transfer or savings.
+    value: ${{ steps.map.outputs.candidate_count }}
+runs:
+  using: composite
+  steps:
+    - id: map
+      name: Build map and expose its deterministic identity
+      shell: bash
+      env:
+        HORYZONT_DATASET: ${{ inputs.dataset }}
+        HORYZONT_OUTPUT: ${{ inputs.output }}
+      run: |
+        set -euo pipefail
+        python "${GITHUB_ACTION_PATH}/src/horyzont/probes/material_lineage.py" \
+          "$HORYZONT_DATASET" --output "$HORYZONT_OUTPUT"
+        python - "$HORYZONT_OUTPUT" "$GITHUB_OUTPUT" <<'PY'
+        import hashlib
+        import json
+        import sys
+        from pathlib import Path
+
+        output_path = Path(sys.argv[1])
+        result = json.loads(output_path.read_text(encoding="utf-8"))
+        if result.get("schema") != "horyzont.material-lineage-opportunity-map/v0.1":
+            raise SystemExit("unexpected result schema")
+        boundary = result.get("truth_boundary", {})
+        if any(boundary.get(field) for field in (
+            "physical_transfer_occurred",
+            "ownership_transfer_authorized",
+            "financial_savings_established",
+            "dpp_compliance_established",
+        )):
+            raise SystemExit("adapter must not claim an external result")
+        with Path(sys.argv[2]).open("a", encoding="utf-8") as output:
+            output.write(f"result_hash={hashlib.sha256(output_path.read_bytes()).hexdigest()}\n")
+            output.write(f"candidate_count={len(result.get('candidate_matches', []))}\n")
+        PY
