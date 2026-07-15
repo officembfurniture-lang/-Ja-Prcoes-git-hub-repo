@@ -73,3 +73,17 @@ P-0006 deterministically joins caller-provided material-source and demand record
 ```
 
 See [p0006/README.md](p0006/README.md) and [p0006/value-circuit.json](p0006/value-circuit.json). This immutable package is distribution only. A successful non-owner run bound to immutable code, input provenance and the deterministic result hash is only an external-use candidate; physical transfer, verified benefit, capture and return remain separate evidence gates.
+
+## Portfolio probe P-0007 — Bounded Early-Action Backtest
+
+P-0007 applies a frozen warning policy to caller-provided historical or synthetic episodes. It emits deterministic counterfactual comparisons without issuing warnings, authorizing action, or claiming avoided loss.
+
+```yaml
+- id: backtest
+  uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0007@458af9cb64fb2b550d1da1dc7597c935c48ed0de
+  with:
+    dataset: early-action-episodes.json
+    output: early-action-backtest.json
+```
+
+See [p0007/README.md](p0007/README.md) and [p0007/value-circuit.json](p0007/value-circuit.json). This immutable package is distribution only. A successful non-owner run bound to immutable code, input provenance and the deterministic result hash is only an external-use candidate; observed outcome, capture and return remain separate evidence gates.
