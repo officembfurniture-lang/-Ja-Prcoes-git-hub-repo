@@ -1,0 +1,26 @@
+{
+  "schema": "horyzont.public-value-circuit/v0.1",
+  "probe_id": "P-0006",
+  "distribution": {
+    "channel": "public_github_action_subdirectory",
+    "path": "p0006",
+    "state": "pending_publication_readback"
+  },
+  "external_use": {
+    "gate": "successful workflow in a non-owner repository pinned to the immutable package commit and bound to provenance-bearing input plus the emitted result hash",
+    "verified": false
+  },
+  "outcome": {
+    "gate": "holder and receiver independently verify at least one candidate match without disclosing private payload",
+    "verified": false
+  },
+  "capture": {
+    "rail": "lineage service license or share of independently verified savings",
+    "amount": 0,
+    "verified": false
+  },
+  "return": {
+    "amount": 0,
+    "verified": false
+  }
+}
