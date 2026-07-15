@@ -1,0 +1,51 @@
+name: Bounded Early-Action Backtest
+description: Backtest a frozen warning policy on caller-provided episodes without issuing a warning, authorizing action or claiming observed avoided loss.
+inputs:
+  dataset:
+    description: Path to historical or synthetic episode JSON in the caller workspace.
+    required: true
+  output:
+    description: Result JSON path in the caller workspace.
+    required: false
+    default: early-action-backtest.json
+outputs:
+  result-hash:
+    description: SHA-256 of the deterministic backtest result.
+    value: ${{ steps.backtest.outputs.result_hash }}
+  episode-count:
+    description: Number of evaluated episodes; this is not evidence of operational use or avoided loss.
+    value: ${{ steps.backtest.outputs.episode_count }}
+runs:
+  using: composite
+  steps:
+    - id: backtest
+      name: Run bounded counterfactual backtest
+      shell: bash
+      env:
+        HORYZONT_DATASET: ${{ inputs.dataset }}
+        HORYZONT_OUTPUT: ${{ inputs.output }}
+      run: |
+        set -euo pipefail
+        python "${GITHUB_ACTION_PATH}/src/horyzont/probes/early_action_simulator.py" \
+          "$HORYZONT_DATASET" --output "$HORYZONT_OUTPUT"
+        python - "$HORYZONT_OUTPUT" "$GITHUB_OUTPUT" <<'PY'
+        import hashlib
+        import json
+        import sys
+        from pathlib import Path
+
+        output_path = Path(sys.argv[1])
+        result = json.loads(output_path.read_text(encoding="utf-8"))
+        if result.get("schema") != "horyzont.early-action-backtest/v0.1":
+            raise SystemExit("unexpected result schema")
+        boundary = result.get("truth_boundary", {})
+        if any(boundary.get(field) for field in (
+            "real_warning_issued",
+            "real_action_taken",
+            "real_avoided_loss_established",
+        )):
+            raise SystemExit("adapter must not claim an external result")
+        with Path(sys.argv[2]).open("a", encoding="utf-8") as output:
+            output.write(f"result_hash={hashlib.sha256(output_path.read_bytes()).hexdigest()}\n")
+            output.write(f"episode_count={len(result.get('episodes', []))}\n")
+        PY
