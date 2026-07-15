@@ -1,0 +1,47 @@
+{
+  "input_kind": "synthetic_demonstration",
+  "sources": [
+    {
+      "id": "SRC-PANEL-001",
+      "material_code": "WOOD-MDF-E1",
+      "mass_kg": 180,
+      "quality_tags": ["dry", "panel", "indoor"],
+      "contaminants": [],
+      "region": "malopolskie"
+    },
+    {
+      "id": "SRC-OFFCUT-002",
+      "material_code": "WOOD-OAK-SOLID",
+      "mass_kg": 42,
+      "quality_tags": ["dry", "solid", "untreated"],
+      "contaminants": [],
+      "region": "malopolskie"
+    },
+    {
+      "id": "SRC-COATED-003",
+      "material_code": "WOOD-MDF-E1",
+      "mass_kg": 90,
+      "quality_tags": ["panel", "coated"],
+      "contaminants": ["unknown_coating"],
+      "region": "slaskie"
+    }
+  ],
+  "demands": [
+    {
+      "id": "DEM-PACKAGING-001",
+      "accepted_material_codes": ["WOOD-MDF-E1", "WOOD-OAK-SOLID"],
+      "required_tags": ["dry"],
+      "prohibited_contaminants": ["unknown_coating"],
+      "min_mass_kg": 30,
+      "accepted_regions": ["malopolskie"]
+    },
+    {
+      "id": "DEM-SOLID-REUSE-002",
+      "accepted_material_codes": ["WOOD-OAK-SOLID"],
+      "required_tags": ["solid", "untreated"],
+      "prohibited_contaminants": [],
+      "min_mass_kg": 40,
+      "accepted_regions": ["malopolskie", "podkarpackie"]
+    }
+  ]
+}
