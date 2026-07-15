@@ -1,0 +1,54 @@
+{
+  "baseline_total_loss_units": 160.0,
+  "confusion_matrix": {
+    "false_negative": 1,
+    "false_positive": 1,
+    "true_negative": 1,
+    "true_positive": 1
+  },
+  "episodes": [
+    {
+      "baseline_loss_units": 100.0,
+      "episode_id": "EP-001",
+      "event_occurred": true,
+      "simulated_action": true,
+      "simulated_total_units": 43.0
+    },
+    {
+      "baseline_loss_units": 0.0,
+      "episode_id": "EP-002",
+      "event_occurred": false,
+      "simulated_action": true,
+      "simulated_total_units": 8.0
+    },
+    {
+      "baseline_loss_units": 60.0,
+      "episode_id": "EP-003",
+      "event_occurred": true,
+      "simulated_action": false,
+      "simulated_total_units": 60.0
+    },
+    {
+      "baseline_loss_units": 0.0,
+      "episode_id": "EP-004",
+      "event_occurred": false,
+      "simulated_action": false,
+      "simulated_total_units": 0.0
+    }
+  ],
+  "modeled_avoided_loss_units": 49.0,
+  "policy": {
+    "action_cost": 8,
+    "minimum_lead_hours": 6,
+    "warning_threshold": 0.7
+  },
+  "schema": "horyzont.early-action-backtest/v0.1",
+  "simulated_total_cost_units": 111.0,
+  "truth_boundary": {
+    "input_kind": "synthetic_demonstration",
+    "real_action_taken": false,
+    "real_avoided_loss_established": false,
+    "real_warning_issued": false,
+    "statement": "This is a counterfactual backtest. Its modeled avoided loss is not an observed outcome, financial saving or authorization for emergency action."
+  }
+}
