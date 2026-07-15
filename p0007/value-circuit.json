@@ -4,10 +4,10 @@
   "distribution": {
     "channel": "public_github_action_subdirectory",
     "path": "p0007",
-    "state": "publication_pending_immutable_readback",
-    "package_commit": null,
-    "discovery_commit": null,
-    "readback_files": 0
+    "state": "verified_immutable_public_readback",
+    "package_commit": "458af9cb64fb2b550d1da1dc7597c935c48ed0de",
+    "discovery_commit": "5ab2a72e87b9dca3ba963a8f4b2ca3d17eb13bf8",
+    "readback_files": 6
   },
   "external_use": {
     "gate": "successful workflow in a non-owner repository pinned to the immutable package commit and bound to provenance-bearing input plus the emitted result hash",
