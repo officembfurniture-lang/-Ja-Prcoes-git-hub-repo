@@ -1,0 +1,51 @@
+{
+  "candidate_mass_kg": 264.0,
+  "candidate_matches": [
+    {
+      "candidate_mass_kg": 42.0,
+      "coordination_score": 0.9,
+      "demand_id": "DEM-SOLID-REUSE-002",
+      "material_code": "WOOD-OAK-SOLID",
+      "region_match": true,
+      "required_tags_met": [
+        "solid",
+        "untreated"
+      ],
+      "source_id": "SRC-OFFCUT-002"
+    },
+    {
+      "candidate_mass_kg": 42.0,
+      "coordination_score": 0.8,
+      "demand_id": "DEM-PACKAGING-001",
+      "material_code": "WOOD-OAK-SOLID",
+      "region_match": true,
+      "required_tags_met": [
+        "dry"
+      ],
+      "source_id": "SRC-OFFCUT-002"
+    },
+    {
+      "candidate_mass_kg": 180.0,
+      "coordination_score": 0.8,
+      "demand_id": "DEM-PACKAGING-001",
+      "material_code": "WOOD-MDF-E1",
+      "region_match": true,
+      "required_tags_met": [
+        "dry"
+      ],
+      "source_id": "SRC-PANEL-001"
+    }
+  ],
+  "schema": "horyzont.material-lineage-opportunity-map/v0.1",
+  "truth_boundary": {
+    "dpp_compliance_established": false,
+    "financial_savings_established": false,
+    "ownership_transfer_authorized": false,
+    "physical_transfer_occurred": false,
+    "statement": "Matches are coordination candidates from declared data. Material quality, ownership, logistics and outcomes require external verification."
+  },
+  "unmatched_demand_ids": [],
+  "unmatched_source_ids": [
+    "SRC-COATED-003"
+  ]
+}
