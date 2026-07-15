@@ -1,0 +1,42 @@
+{
+  "input_kind": "synthetic_demonstration",
+  "policy": {
+    "warning_threshold": 0.7,
+    "minimum_lead_hours": 6,
+    "action_cost": 8
+  },
+  "episodes": [
+    {
+      "id": "EP-001",
+      "warning_score": 0.9,
+      "lead_hours": 12,
+      "event_occurred": true,
+      "baseline_loss_units": 100,
+      "mitigated_loss_units": 35
+    },
+    {
+      "id": "EP-002",
+      "warning_score": 0.75,
+      "lead_hours": 8,
+      "event_occurred": false,
+      "baseline_loss_units": 0,
+      "mitigated_loss_units": 0
+    },
+    {
+      "id": "EP-003",
+      "warning_score": 0.55,
+      "lead_hours": 10,
+      "event_occurred": true,
+      "baseline_loss_units": 60,
+      "mitigated_loss_units": 25
+    },
+    {
+      "id": "EP-004",
+      "warning_score": 0.2,
+      "lead_hours": 3,
+      "event_occurred": false,
+      "baseline_loss_units": 0,
+      "mitigated_loss_units": 0
+    }
+  ]
+}
