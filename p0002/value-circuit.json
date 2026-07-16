@@ -1,0 +1,29 @@
+{
+  "schema": "horyzont.public-value-circuit/v0.1",
+  "probe_id": "P-0002",
+  "distribution": {
+    "channel": "public_github_action_subdirectory",
+    "path": "p0002",
+    "state": "publication_pending_immutable_readback",
+    "package_commit": null,
+    "discovery_commit": null,
+    "readback_files": 0
+  },
+  "external_use": {
+    "gate": "successful workflow in a non-owner repository pinned to the immutable package commit and bound to a caller commit, scanned root and emitted inventory hash",
+    "verified": false
+  },
+  "outcome": {
+    "gate": "independent evidence that a traceability gap identified by a prior inventory hash was remediated; the passport itself never determines legal compliance",
+    "verified": false
+  },
+  "capture": {
+    "rail": "paid pilot, per-scan report or recurring change-monitoring subscription",
+    "amount": 0,
+    "verified": false
+  },
+  "return": {
+    "amount": 0,
+    "verified": false
+  }
+}
