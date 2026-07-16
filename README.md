@@ -87,3 +87,16 @@ P-0007 applies a frozen warning policy to caller-provided historical or syntheti
 ```
 
 See [p0007/README.md](p0007/README.md) and [p0007/value-circuit.json](p0007/value-circuit.json). This immutable package is distribution only. A successful non-owner run bound to immutable code, input provenance and the deterministic result hash is only an external-use candidate; observed outcome, capture and return remain separate evidence gates.
+## Portfolio probe P-0002 — Agent Operations Passport
+
+P-0002 builds a hash-only inventory of repository files and filename-derived traceability categories without exporting source contents or determining legal compliance.
+
+```yaml
+- id: passport
+  uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0002@e3133e57d2dae07cb59b4a7e948573a0aa8557fd
+  with:
+    root: .
+    output: agent-operations-passport.json
+```
+
+See [p0002/README.md](p0002/README.md) and [p0002/value-circuit.json](p0002/value-circuit.json). This immutable package is distribution only. A successful non-owner run pinned to the package commit and bound to the caller commit, scanned root and emitted inventory hash is only an external-use candidate; remediation, capture and return remain separate evidence gates.
