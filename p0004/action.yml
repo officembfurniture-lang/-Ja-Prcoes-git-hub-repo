@@ -1,0 +1,50 @@
+name: Outcome Mandate Protocol
+description: Freeze a caller-provided bounded outcome mandate into a deterministic hash-addressed JSON artifact without authorizing payment.
+inputs:
+  draft:
+    description: Path to an Outcome Mandate draft JSON in the caller workspace.
+    required: true
+  output:
+    description: Frozen mandate JSON path in the caller workspace.
+    required: false
+    default: outcome-mandate.json
+outputs:
+  mandate-hash:
+    description: SHA-256 identity embedded in the frozen mandate.
+    value: ${{ steps.freeze.outputs.mandate_hash }}
+  criteria-count:
+    description: Number of declared outcome criteria; this is not proof that any criterion was achieved.
+    value: ${{ steps.freeze.outputs.criteria_count }}
+runs:
+  using: composite
+  steps:
+    - id: freeze
+      name: Freeze mandate and expose its deterministic identity
+      shell: bash
+      env:
+        HORYZONT_DRAFT: ${{ inputs.draft }}
+        HORYZONT_OUTPUT: ${{ inputs.output }}
+      run: |
+        set -euo pipefail
+        python "${GITHUB_ACTION_PATH}/src/horyzont/probes/outcome_mandate.py" \
+          create "$HORYZONT_DRAFT" --output "$HORYZONT_OUTPUT"
+        python - "$HORYZONT_OUTPUT" "$GITHUB_OUTPUT" <<'PY'
+        import json
+        import re
+        import sys
+        from pathlib import Path
+
+        mandate = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+        mandate_hash = str(mandate.get("mandate_hash", ""))
+        if mandate.get("schema") != "horyzont.outcome-mandate/v0.1":
+            raise SystemExit("unexpected result schema")
+        if not re.fullmatch(r"[0-9a-f]{64}", mandate_hash):
+            raise SystemExit("mandate did not emit a SHA-256 mandate_hash")
+        boundary = mandate.get("truth_boundary", {})
+        if boundary.get("content_hash_is_signature") or boundary.get("payment_authorized"):
+            raise SystemExit("adapter must not claim identity signature or payment authority")
+        with Path(sys.argv[2]).open("a", encoding="utf-8") as output:
+            output.write(f"mandate_hash={mandate_hash}\n")
+            output.write(f"criteria_count={len(mandate.get('criteria', []))}\n")
+        PY
+
