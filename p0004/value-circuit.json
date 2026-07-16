@@ -1,0 +1,29 @@
+{
+  "schema": "horyzont.public-value-circuit/v0.1",
+  "probe_id": "P-0004",
+  "distribution": {
+    "channel": "public_github_action_subdirectory",
+    "path": "p0004",
+    "state": "published_pending_immutable_readback",
+    "package_commit": null,
+    "discovery_commit": null,
+    "readback_files": 0
+  },
+  "external_use": {
+    "gate": "successful workflow in a non-owner repository pinned to the immutable package commit and bound to a caller-provided draft plus the emitted mandate hash",
+    "verified": false
+  },
+  "outcome": {
+    "gate": "independent verification of provenance-bearing evidence against the frozen criteria; the protocol verifier alone does not establish source truth",
+    "verified": false
+  },
+  "capture": {
+    "rail": "verification fee or protocol license; transaction fees require separately active A3",
+    "amount": 0,
+    "verified": false
+  },
+  "return": {
+    "amount": 0,
+    "verified": false
+  }
+}
