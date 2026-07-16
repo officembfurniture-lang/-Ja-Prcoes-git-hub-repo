@@ -4,10 +4,10 @@
   "distribution": {
     "channel": "public_github_action_subdirectory",
     "path": "p0004",
-    "state": "published_pending_immutable_readback",
-    "package_commit": null,
-    "discovery_commit": null,
-    "readback_files": 0
+    "state": "verified_immutable_public_readback",
+    "package_commit": "b5c9f097beca043d8aacc2592b962589a599593d",
+    "discovery_commit": "7299685b27794bd327a3c37fd9e0d075a2b6960c",
+    "readback_files": 4
   },
   "external_use": {
     "gate": "successful workflow in a non-owner repository pinned to the immutable package commit and bound to a caller-provided draft plus the emitted mandate hash",
