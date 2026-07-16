@@ -1,0 +1,61 @@
+name: Agent Operations Passport
+description: Build a hash-only AI operations inventory and traceability-gap report without exporting file contents.
+inputs:
+  root:
+    description: Repository directory to scan.
+    required: false
+    default: .
+  output:
+    description: JSON report path relative to the caller workspace.
+    required: false
+    default: agent-operations-passport.json
+  upload-artifact:
+    description: Upload the generated passport as a GitHub Actions artifact.
+    required: false
+    default: "true"
+outputs:
+  inventory-hash:
+    description: Stable SHA-256 of the hash-only inventory; generated_at is excluded.
+    value: ${{ steps.passport.outputs.inventory_hash }}
+  passport-hash:
+    description: SHA-256 of the complete timestamped report.
+    value: ${{ steps.passport.outputs.passport_hash }}
+  file-count:
+    description: Number of inventory entries; this is not a compliance or outcome claim.
+    value: ${{ steps.passport.outputs.file_count }}
+runs:
+  using: composite
+  steps:
+    - id: passport
+      name: Build Agent Operations Passport
+      shell: bash
+      env:
+        HORYZONT_ROOT: ${{ inputs.root }}
+        HORYZONT_OUTPUT: ${{ inputs.output }}
+      run: |
+        set -euo pipefail
+        python "${GITHUB_ACTION_PATH}/src/horyzont/probes/agent_ops_passport.py" \
+          "$HORYZONT_ROOT" --output "$HORYZONT_OUTPUT"
+        python - "$HORYZONT_OUTPUT" "$GITHUB_OUTPUT" <<'PY'
+        import json
+        import sys
+        from pathlib import Path
+
+        result = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+        if result.get("schema") != "horyzont.agent-operations-passport/v0.1":
+            raise SystemExit("unexpected result schema")
+        boundary = result.get("truth_boundary", {})
+        if boundary.get("legal_compliance_determined") or boundary.get("file_contents_exported"):
+            raise SystemExit("adapter must not claim compliance or export file contents")
+        with Path(sys.argv[2]).open("a", encoding="utf-8") as output:
+            output.write(f"inventory_hash={result['inventory_hash']}\n")
+            output.write(f"passport_hash={result['passport_hash']}\n")
+            output.write(f"file_count={result['file_count']}\n")
+        PY
+    - name: Upload passport
+      if: ${{ inputs.upload-artifact == 'true' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: agent-operations-passport
+        path: ${{ inputs.output }}
+        if-no-files-found: error
