@@ -100,3 +100,17 @@ P-0002 builds a hash-only inventory of repository files and filename-derived tra
 ```
 
 See [p0002/README.md](p0002/README.md) and [p0002/value-circuit.json](p0002/value-circuit.json). This immutable package is distribution only. A successful non-owner run pinned to the package commit and bound to the caller commit, scanned root and emitted inventory hash is only an external-use candidate; remediation, capture and return remain separate evidence gates.
+
+## Portfolio probe P-0004 — Outcome Mandate Protocol
+
+P-0004 freezes a caller-provided task, budget ceiling, outcome criteria, evidence policy, kill gate and expiry into a deterministic mandate hash. It does not sign an identity, authorize payment, execute a task or establish source truth.
+
+```yaml
+- id: mandate
+  uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0004@b5c9f097beca043d8aacc2592b962589a599593d
+  with:
+    draft: outcome-mandate-draft.json
+    output: outcome-mandate.json
+```
+
+See [p0004/README.md](p0004/README.md) and [p0004/value-circuit.json](p0004/value-circuit.json). This immutable package is distribution only after byte readback. A successful non-owner run pinned to the package commit and bound to the caller draft plus emitted mandate hash is only an external-use candidate; source truth, outcome, capture and return remain separate evidence gates.
