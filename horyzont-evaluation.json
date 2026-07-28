@@ -1,0 +1,95 @@
+{
+  "activation_id": "DA-20260728-P0002-I1",
+  "anchor_probe": "P-0002",
+  "attribution_token": "e236026021cebdde1df6",
+  "economic_boundary": {
+    "capture_rail_configured": false,
+    "license_granted": false,
+    "payment_promised": false,
+    "return_rail_control_verified": false,
+    "transaction_authorized": false
+  },
+  "evaluation_mode": "independent_public_workflow",
+  "evidence_submission": {
+    "acceptance_requires_separate_verification": true,
+    "channel": "public repository issue",
+    "required": [
+      "foreign_repository_url",
+      "workflow_file_url",
+      "successful_run_url",
+      "caller_commit",
+      "input_provenance",
+      "deterministic_result_hash"
+    ]
+  },
+  "portfolio": [
+    {
+      "capture_verified": false,
+      "evidence_gate": "One repository not controlled by the owner completes the reusable action and exposes a durable workflow-run reference; report retention or export is recorded as supporting evidence.",
+      "external_use_verified": false,
+      "immutable_action_ref": "officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0002@e3133e57d2dae07cb59b4a7e948573a0aa8557fd",
+      "outcome_verified": false,
+      "potential_capture_rail": "paid pilot, per-scan report or recurring change-monitoring subscription",
+      "probe_id": "P-0002",
+      "public_ref": "https://github.com/officembfurniture-lang/-Ja-Prcoes-git-hub-repo/tree/e3133e57d2dae07cb59b4a7e948573a0aa8557fd/p0002",
+      "return_verified": false
+    },
+    {
+      "capture_verified": false,
+      "evidence_gate": "An external operator or researcher runs the scheduler on a real, provenance-bearing trace and confirms that the result respects its declared service constraints.",
+      "external_use_verified": false,
+      "immutable_action_ref": "officembfurniture-lang/-Ja-Prcoes-git-hub-repo@1681413540785c3455f5471acde4dbdbb33be4b5",
+      "outcome_verified": false,
+      "potential_capture_rail": null,
+      "probe_id": "P-0003",
+      "public_ref": "https://github.com/officembfurniture-lang/-Ja-Prcoes-git-hub-repo/tree/1681413540785c3455f5471acde4dbdbb33be4b5",
+      "return_verified": false
+    },
+    {
+      "capture_verified": false,
+      "evidence_gate": "One independently operated agent or workflow creates a mandate and verifies a result without developer assistance, with a durable external reference.",
+      "external_use_verified": false,
+      "immutable_action_ref": "officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0004@b5c9f097beca043d8aacc2592b962589a599593d",
+      "outcome_verified": false,
+      "potential_capture_rail": "verification fee or protocol license; transaction fees require separately active A3",
+      "probe_id": "P-0004",
+      "public_ref": "https://github.com/officembfurniture-lang/-Ja-Prcoes-git-hub-repo/tree/b5c9f097beca043d8aacc2592b962589a599593d/p0004",
+      "return_verified": false
+    },
+    {
+      "capture_verified": false,
+      "evidence_gate": "A non-owner operator compiles a protocol and later binds independently collected measurements to its frozen hash.",
+      "external_use_verified": false,
+      "immutable_action_ref": "officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0005@62feb7ce4190989634b5f0da37f4bc4cc82a18ed",
+      "outcome_verified": false,
+      "potential_capture_rail": null,
+      "probe_id": "P-0005",
+      "public_ref": "https://github.com/officembfurniture-lang/-Ja-Prcoes-git-hub-repo/tree/62feb7ce4190989634b5f0da37f4bc4cc82a18ed/p0005",
+      "return_verified": false
+    },
+    {
+      "capture_verified": false,
+      "evidence_gate": "A non-owner operator analyzes a provenance-bearing material dataset and independently verifies at least one candidate match.",
+      "external_use_verified": false,
+      "immutable_action_ref": "officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0006@32773ad94fcd70bb8251a9f1d6d8cdb450e40151",
+      "outcome_verified": false,
+      "potential_capture_rail": "lineage service license or share of independently verified savings",
+      "probe_id": "P-0006",
+      "public_ref": "https://github.com/officembfurniture-lang/-Ja-Prcoes-git-hub-repo/tree/32773ad94fcd70bb8251a9f1d6d8cdb450e40151/p0006",
+      "return_verified": false
+    },
+    {
+      "capture_verified": false,
+      "evidence_gate": "An authorized non-owner institution runs the frozen policy on independently sourced historical data and attests the comparison method.",
+      "external_use_verified": false,
+      "immutable_action_ref": "officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0007@458af9cb64fb2b550d1da1dc7597c935c48ed0de",
+      "outcome_verified": false,
+      "potential_capture_rail": "resilience analysis contract; no automated emergency action or payout authority",
+      "probe_id": "P-0007",
+      "public_ref": "https://github.com/officembfurniture-lang/-Ja-Prcoes-git-hub-repo/tree/458af9cb64fb2b550d1da1dc7597c935c48ed0de/p0007",
+      "return_verified": false
+    }
+  ],
+  "schema": "horyzont.public-demand-catalog/v0.1",
+  "truth_boundary": "This catalog is a reversible public demand intervention and an attribution instrument. It is not external use, outcome, capture, return, a license, an offer, or a legal commitment."
+}
