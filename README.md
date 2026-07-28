@@ -1,3 +1,41 @@
+<!-- HORYZONT:DEMAND-ACTIVATION:BEGIN -->
+## Independent evaluation requested
+
+HORYZONT is looking for one independently controlled, reproducible evaluation
+of **P-0002**. The action is pinned to immutable code and requires no
+account, payment, direct contact, or permission expansion from this repository.
+
+Activation id: `DA-20260728-P0002-I1`
+
+```yaml
+name: Independent HORYZONT evaluation
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: passport
+        uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0002@e3133e57d2dae07cb59b4a7e948573a0aa8557fd
+        with:
+          root: .
+          output: agent-operations-passport.json
+      - run: echo "inventory-hash=${{ steps.passport.outputs.inventory-hash }}"
+```
+
+For an external-use candidate, keep the public workflow-run URL, caller commit,
+input provenance, and emitted deterministic hash. The evidence gate is:
+One repository not controlled by the owner completes the reusable action and exposes a durable workflow-run reference; report retention or export is recorded as supporting evidence.
+
+The machine-readable portfolio and evidence contract are in
+[`horyzont-evaluation.json`](horyzont-evaluation.json). Publication, a declaration of `uses`, an
+owner-controlled run, a star, or a fork is not external use. This request grants
+no license, makes no payment promise, and creates no commercial or legal
+commitment. Outcome, capture, and return remain separate verified gates.
+<!-- HORYZONT:DEMAND-ACTIVATION:END -->
+
 # HORYZONT P-0003 — Grid-Flexible Workload Passport
 
 This public probe compares a baseline workload schedule with a grid-aware schedule while preserving declared service windows and site capacity.
