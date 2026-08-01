@@ -38,11 +38,11 @@
       "capture_verified": false,
       "evidence_gate": "An external operator or researcher runs the scheduler on a real, provenance-bearing trace and confirms that the result respects its declared service constraints.",
       "external_use_verified": false,
-      "immutable_action_ref": "officembfurniture-lang/-Ja-Prcoes-git-hub-repo@1681413540785c3455f5471acde4dbdbb33be4b5",
+      "immutable_action_ref": "officembfurniture-lang/-Ja-Prcoes-git-hub-repo@9401f04303d141e38052b54d370797d7ae4a2eae",
       "outcome_verified": false,
       "potential_capture_rail": null,
       "probe_id": "P-0003",
-      "public_ref": "https://github.com/officembfurniture-lang/-Ja-Prcoes-git-hub-repo/tree/1681413540785c3455f5471acde4dbdbb33be4b5",
+      "public_ref": "https://github.com/officembfurniture-lang/-Ja-Prcoes-git-hub-repo/tree/9401f04303d141e38052b54d370797d7ae4a2eae",
       "return_verified": false
     },
     {
