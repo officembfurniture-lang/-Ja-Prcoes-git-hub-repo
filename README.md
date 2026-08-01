@@ -2,10 +2,10 @@
 ## Independent evaluation requested
 
 HORYZONT is looking for one independently controlled, reproducible evaluation
-of **P-0002**. The action is pinned to immutable code and requires no
+of **P-0004**. The action is pinned to immutable code and requires no
 account, payment, direct contact, or permission expansion from this repository.
 
-Activation id: `DA-20260728-P0002-I1`
+Activation id: `DA-20260801-P0004-I2`
 
 ```yaml
 name: Independent HORYZONT evaluation
@@ -17,17 +17,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - id: passport
-        uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0002@e3133e57d2dae07cb59b4a7e948573a0aa8557fd
+      - id: mandate
+        uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0004@b5c9f097beca043d8aacc2592b962589a599593d
         with:
-          root: .
-          output: agent-operations-passport.json
-      - run: echo "inventory-hash=${{ steps.passport.outputs.inventory-hash }}"
+          draft: outcome-mandate-draft.json
+          output: outcome-mandate.json
+      - run: echo "mandate-hash=${{ steps.mandate.outputs.mandate-hash }}"
 ```
 
 For an external-use candidate, keep the public workflow-run URL, caller commit,
 input provenance, and emitted deterministic hash. The evidence gate is:
-One repository not controlled by the owner completes the reusable action and exposes a durable workflow-run reference; report retention or export is recorded as supporting evidence.
+One independently operated agent or workflow creates a mandate and verifies a result without developer assistance, with a durable external reference.
 
 The machine-readable portfolio and evidence contract are in
 [`horyzont-evaluation.json`](horyzont-evaluation.json). Publication, a declaration of `uses`, an
