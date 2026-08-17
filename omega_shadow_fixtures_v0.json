@@ -52,6 +52,51 @@
         "human_burden": {"before": 1, "after": 1}
       },
       "expected_verdict": "DRIVER_REGRESSION"
+    },
+    {
+      "name": "p0003_distribution_verified_but_human_burden_unknown",
+      "record": {
+        "previous_state": {
+          "probe_id": "P-0003",
+          "distribution": "none",
+          "external_use": "none",
+          "outcome": "none",
+          "capture": "none",
+          "return": "none"
+        },
+        "candidate_state": {
+          "probe_id": "P-0003",
+          "distribution": "verified",
+          "external_use": "none",
+          "outcome": "none",
+          "capture": "none",
+          "return": "none"
+        },
+        "evidence": [
+          {
+            "id": "p0003_distribution",
+            "status": "VERIFIED",
+            "provenance": "value-circuit.json; immutable commit 9401f04303d141e38052b54d370797d7ae4a2eae; readback_file_count=7",
+            "already_known": false
+          }
+        ],
+        "predictions": [],
+        "action": {
+          "executed": true,
+          "readback_verified": true,
+          "provenance": "public GitHub distribution recorded in value-circuit.json"
+        },
+        "debts": {
+          "prediction_debt": 0,
+          "contradiction_debt": 0,
+          "redundancy_debt": 0,
+          "claim_debt": 0
+        },
+        "human_burden": {
+          "measured": false
+        }
+      },
+      "expected_verdict": "HOLD"
     }
   ]
 }
