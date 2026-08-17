@@ -16,7 +16,7 @@ class Verdict:
     state_hash: str
     evidence_delta: int
     action_verified: bool
-    burden_delta: float
+    burden_delta: float | None
     debt_total: float
     next_test: str
 
@@ -48,9 +48,22 @@ def evaluate(record: Dict[str, Any]) -> Verdict:
     )
 
     debt_total = sum(float(debts.get(k, 0) or 0) for k in DEBT_KEYS)
-    burden_before = float(burden.get("before", 0) or 0)
-    burden_after = float(burden.get("after", burden_before) or 0)
-    burden_delta = burden_after - burden_before
+
+    explicit_measurement_flag = burden.get("measured")
+    if explicit_measurement_flag is False:
+        burden_measured = False
+    elif explicit_measurement_flag is True:
+        burden_measured = "before" in burden and "after" in burden
+    else:
+        burden_measured = "before" in burden and "after" in burden
+
+    burden_delta: float | None
+    if burden_measured:
+        burden_before = float(burden["before"] or 0)
+        burden_after = float(burden["after"] or 0)
+        burden_delta = burden_after - burden_before
+    else:
+        burden_delta = None
 
     unsupported_progress = any(
         p.get("status") == "PROGRESS" and not p.get("supporting_evidence_ids")
@@ -64,7 +77,7 @@ def evaluate(record: Dict[str, Any]) -> Verdict:
             debt_total + 1, "remove_or_support_progress_claim",
         )
 
-    if burden_delta > 0 and evidence_delta == 0 and not action_verified:
+    if burden_measured and burden_delta is not None and burden_delta > 0 and evidence_delta == 0 and not action_verified:
         return Verdict(
             "DRIVER_REGRESSION",
             "Human burden increased without verified information or action gain.",
@@ -78,6 +91,15 @@ def evaluate(record: Dict[str, Any]) -> Verdict:
             "No new verified evidence and no verified action.",
             stable_hash(previous), 0, False, burden_delta, debt_total,
             "wait_for_new_evidence_or_run_reversible_test",
+        )
+
+    if not burden_measured:
+        return Verdict(
+            "HOLD",
+            "Verified delta exists, but human burden is unmeasured; promotion would convert unknown cost into assumed zero cost.",
+            stable_hash(record.get("candidate_state", previous)),
+            evidence_delta, action_verified, None, debt_total,
+            "measure_human_burden_before_promotion",
         )
 
     if debt_total > float(record.get("debt_limit", 3)):
