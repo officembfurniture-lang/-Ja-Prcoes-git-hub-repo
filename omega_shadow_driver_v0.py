@@ -7,6 +7,12 @@ from dataclasses import asdict, dataclass
 from typing import Any, Dict
 
 DEBT_KEYS = ("prediction_debt", "contradiction_debt", "redundancy_debt", "claim_debt")
+MATERIAL_EFFECT_KINDS = {
+    "decision_changed",
+    "action_path_opened",
+    "action_path_closed",
+    "capability_boundary_changed",
+}
 
 
 @dataclass
@@ -16,6 +22,8 @@ class Verdict:
     state_hash: str
     evidence_delta: int
     action_verified: bool
+    material_effect_verified: bool
+    material_effect_kind: str | None
     burden_delta: float | None
     debt_total: float
     next_test: str
@@ -33,6 +41,7 @@ def evaluate(record: Dict[str, Any]) -> Verdict:
     action = record.get("action", {})
     debts = record.get("debts", {})
     burden = record.get("human_burden", {})
+    decision_effect = record.get("decision_effect", {})
 
     verified_evidence = [
         e for e in evidence
@@ -45,6 +54,14 @@ def evaluate(record: Dict[str, Any]) -> Verdict:
         and action.get("executed") is True
         and action.get("readback_verified") is True
         and action.get("provenance")
+    )
+
+    material_effect_kind = decision_effect.get("kind")
+    material_effect_verified = bool(
+        decision_effect
+        and decision_effect.get("verified") is True
+        and decision_effect.get("provenance")
+        and material_effect_kind in MATERIAL_EFFECT_KINDS
     )
 
     debt_total = sum(float(debts.get(k, 0) or 0) for k in DEBT_KEYS)
@@ -73,15 +90,17 @@ def evaluate(record: Dict[str, Any]) -> Verdict:
         return Verdict(
             "DRIVER_REGRESSION",
             "Progress claim without supporting evidence.",
-            stable_hash(previous), evidence_delta, action_verified, burden_delta,
+            stable_hash(previous), evidence_delta, action_verified,
+            material_effect_verified, material_effect_kind, burden_delta,
             debt_total + 1, "remove_or_support_progress_claim",
         )
 
-    if burden_measured and burden_delta is not None and burden_delta > 0 and evidence_delta == 0 and not action_verified:
+    if burden_measured and burden_delta is not None and burden_delta > 0 and not material_effect_verified:
         return Verdict(
             "DRIVER_REGRESSION",
-            "Human burden increased without verified information or action gain.",
-            stable_hash(previous), evidence_delta, action_verified, burden_delta,
+            "Human burden increased without a verified decision or capability effect.",
+            stable_hash(previous), evidence_delta, action_verified,
+            material_effect_verified, material_effect_kind, burden_delta,
             debt_total, "run_control_without_driver",
         )
 
@@ -89,34 +108,44 @@ def evaluate(record: Dict[str, Any]) -> Verdict:
         return Verdict(
             "NO_DELTA",
             "No new verified evidence and no verified action.",
-            stable_hash(previous), 0, False, burden_delta, debt_total,
+            stable_hash(previous), 0, False,
+            material_effect_verified, material_effect_kind, burden_delta, debt_total,
             "wait_for_new_evidence_or_run_reversible_test",
+        )
+
+    if not material_effect_verified:
+        return Verdict(
+            "HOLD",
+            "Evidence or action is verified, but no independently grounded decision-changing or capability-changing effect is verified.",
+            stable_hash(record.get("candidate_state", previous)),
+            evidence_delta, action_verified, False, material_effect_kind, burden_delta,
+            debt_total, "verify_decision_effect_before_promotion",
         )
 
     if not burden_measured:
         return Verdict(
             "HOLD",
-            "Verified delta exists, but human burden is unmeasured; promotion would convert unknown cost into assumed zero cost.",
+            "Material effect is verified, but human burden is unmeasured; promotion would convert unknown cost into assumed zero cost.",
             stable_hash(record.get("candidate_state", previous)),
-            evidence_delta, action_verified, None, debt_total,
+            evidence_delta, action_verified, True, material_effect_kind, None, debt_total,
             "measure_human_burden_before_promotion",
         )
 
     if debt_total > float(record.get("debt_limit", 3)):
         return Verdict(
             "HOLD",
-            "Delta exists but unresolved debt exceeds threshold.",
+            "Material effect exists but unresolved debt exceeds threshold.",
             stable_hash(record.get("candidate_state", previous)),
-            evidence_delta, action_verified, burden_delta, debt_total,
-            "pay_highest_debt_before_new_exploration",
+            evidence_delta, action_verified, True, material_effect_kind, burden_delta,
+            debt_total, "pay_highest_debt_before_new_exploration",
         )
 
     return Verdict(
         "PROMOTE",
-        "Verified delta exists without threshold-breaking debt or burden regression.",
+        "Verified material effect exists without threshold-breaking debt or burden regression.",
         stable_hash(record.get("candidate_state", previous)),
-        evidence_delta, action_verified, burden_delta, debt_total,
-        "freeze_new_baseline_and_register_one_falsifiable_prediction",
+        evidence_delta, action_verified, True, material_effect_kind, burden_delta,
+        debt_total, "freeze_new_baseline_and_register_one_falsifiable_prediction",
     )
 
 
