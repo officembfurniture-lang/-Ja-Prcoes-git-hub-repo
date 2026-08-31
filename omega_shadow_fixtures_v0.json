@@ -13,19 +13,43 @@
       "expected_verdict": "NO_DELTA"
     },
     {
-      "name": "verified_delta",
+      "name": "verified_material_delta",
       "record": {
-        "previous_state": {"axis": "stable"},
-        "candidate_state": {"axis": "stable", "new_fact": true},
+        "previous_state": {"axis": "stable", "decision": "hold"},
+        "candidate_state": {"axis": "stable", "decision": "proceed"},
         "evidence": [
           {"id": "e1", "status": "VERIFIED", "provenance": "tool:readback", "already_known": false}
         ],
+        "decision_effect": {
+          "verified": true,
+          "kind": "decision_changed",
+          "provenance": "held-out comparison changed decision from hold to proceed"
+        },
         "predictions": [],
         "action": {},
         "debts": {},
         "human_burden": {"before": 2, "after": 1}
       },
       "expected_verdict": "PROMOTE"
+    },
+    {
+      "name": "artifact_verified_but_no_decision_effect",
+      "record": {
+        "previous_state": {"decision": "hold"},
+        "candidate_state": {"decision": "hold", "artifact_created": true},
+        "evidence": [
+          {"id": "artifact_readback", "status": "VERIFIED", "provenance": "tool:readback", "already_known": false}
+        ],
+        "predictions": [],
+        "action": {
+          "executed": true,
+          "readback_verified": true,
+          "provenance": "artifact exists"
+        },
+        "debts": {},
+        "human_burden": {"before": 1, "after": 1}
+      },
+      "expected_verdict": "HOLD"
     },
     {
       "name": "burden_regression",
@@ -54,7 +78,7 @@
       "expected_verdict": "DRIVER_REGRESSION"
     },
     {
-      "name": "p0003_distribution_verified_but_human_burden_unknown",
+      "name": "p0003_distribution_verified_but_no_decision_effect",
       "record": {
         "previous_state": {
           "probe_id": "P-0003",
