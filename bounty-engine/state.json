@@ -1,0 +1,36 @@
+{
+  "engine": "BOUNTY_ENGINE_v1",
+  "cycle": 1,
+  "run_date": "2026-09-01",
+  "state": "IDLE",
+  "active_bounty": null,
+  "last_terminal_transition": "SELECT_NONE -> IDLE",
+  "realized_value_usd": 0,
+  "submitted": 0,
+  "accepted": 0,
+  "paid": 0,
+  "human_gates": 0,
+  "policy_updates": [
+    "Never trust marketplace-open status without verifying the primary GitHub issue or PR.",
+    "A bounty label is not evidence of funded reward; verify the payment/reward record or authoritative bot comment.",
+    "Reject work whose verified reward is economically disproportionate to the acceptance scope.",
+    "Do not manufacture EXECUTE activity when no candidate passes VERIFY; SELECT_NONE is a valid terminal outcome.",
+    "Prefer escrowed or otherwise externally verifiable funding over creator-promised post-merge payment when candidates are otherwise comparable."
+  ],
+  "next_discovery": {
+    "priority": [
+      "fresh primary-source GitHub issues with verified funded reward",
+      "escrow-backed bounty platforms",
+      "small objective documentation/test/fix tasks",
+      "low competition and active maintainers"
+    ],
+    "exclude": [
+      "security/exploit bounty work",
+      "mock/testnet payments",
+      "unfunded bounty labels",
+      "stale marketplace mirrors",
+      "hardware-dependent work",
+      "scope/reward mismatch"
+    ]
+  }
+}
