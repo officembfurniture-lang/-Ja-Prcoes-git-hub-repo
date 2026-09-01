@@ -26,3 +26,8 @@ jobs:
           assert result["moved_task_ids"] == ["batch-evaluation"]
           assert result["truth_boundary"]["physical_savings_claimed"] is False
           PY
+      - name: Bootstrap VALUE_ENGINE validation when present
+        if: ${{ hashFiles('value-engine/validate.py') != '' }}
+        run: |
+          python3 value-engine/validate.py
+          python3 -m py_compile value-engine/cycle.py value-engine/validate.py
