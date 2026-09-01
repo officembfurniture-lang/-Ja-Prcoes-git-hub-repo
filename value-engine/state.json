@@ -2,7 +2,7 @@
   "engine": "VALUE_ENGINE_v2",
   "schema_version": 2,
   "mode": "shadow_until_route_verified",
-  "cycle": 0,
+  "cycle": 1,
   "phase": "IDLE",
   "lease": {
     "cycle_id": null,
@@ -12,14 +12,14 @@
   },
   "active_opportunity": null,
   "active_route": null,
-  "last_transition": "BOOTSTRAP -> IDLE",
+  "last_transition": "SENSE -> IDLE",
   "realized": {
     "cash": [],
     "verified_non_cash": [],
     "cost_savings": []
   },
   "counters": {
-    "observed": 0,
+    "observed": 43,
     "verified": 0,
     "selected": 0,
     "produced": 0,
@@ -33,5 +33,14 @@
     "state_path": "bounty-engine/state.json",
     "ledger_path": "bounty-engine/ledger.ndjson"
   },
-  "last_cycle_result": null
+  "last_cycle_result": {
+    "cycle_id": "cycle-1-33550466483",
+    "at": "2026-09-01T19:36:22Z",
+    "new_observations": 43,
+    "source_errors": [],
+    "selected": 0,
+    "delivered": 0,
+    "paid": 0,
+    "note": "Sensor cycle only; observations are not value and require VERIFY + ROUTE before execution."
+  }
 }
