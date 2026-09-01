@@ -1,0 +1,37 @@
+{
+  "engine": "VALUE_ENGINE_v2",
+  "schema_version": 2,
+  "mode": "shadow_until_route_verified",
+  "cycle": 0,
+  "phase": "IDLE",
+  "lease": {
+    "cycle_id": null,
+    "owner": null,
+    "acquired_at": null,
+    "expires_at": null
+  },
+  "active_opportunity": null,
+  "active_route": null,
+  "last_transition": "BOOTSTRAP -> IDLE",
+  "realized": {
+    "cash": [],
+    "verified_non_cash": [],
+    "cost_savings": []
+  },
+  "counters": {
+    "observed": 0,
+    "verified": 0,
+    "selected": 0,
+    "produced": 0,
+    "delivered": 0,
+    "accepted": 0,
+    "paid": 0,
+    "human_gates": 0
+  },
+  "inherited_from": {
+    "engine": "BOUNTY_ENGINE_v1",
+    "state_path": "bounty-engine/state.json",
+    "ledger_path": "bounty-engine/ledger.ndjson"
+  },
+  "last_cycle_result": null
+}

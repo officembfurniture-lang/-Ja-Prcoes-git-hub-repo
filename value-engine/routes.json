@@ -1,0 +1,70 @@
+{
+  "router_version": 2,
+  "routes": [
+    {
+      "id": "github_direct_write",
+      "kind": "delivery",
+      "requires": ["repository_write_permission"],
+      "supports": ["branch", "commit", "pull_request", "issue", "comment"],
+      "verified_in_test": true,
+      "limitations": ["does_not_create_forks", "draft_to_ready_transition_unreliable"],
+      "fallback": ["existing_cross_repo_branch", "native_platform_submission", "human_gate_one_time_fork"]
+    },
+    {
+      "id": "github_external_read_only",
+      "kind": "discovery",
+      "requires": [],
+      "supports": ["search", "read_issue", "read_repo", "read_pr"],
+      "verified_in_test": true,
+      "selectable_for_execution": false,
+      "upgrade_paths": ["github_direct_write", "native_platform_submission", "human_gate_one_time_fork"]
+    },
+    {
+      "id": "native_platform_submission",
+      "kind": "delivery_and_settlement",
+      "requires": ["installed_connector_or_authorized_api_route"],
+      "supports": ["discover", "claim_if_allowed", "submit", "observe_result", "settlement_receipt_if_exposed"],
+      "verified_in_test": false,
+      "note": "Preferred for agent-native job markets because it can bypass GitHub fork requirements."
+    },
+    {
+      "id": "connected_app_action",
+      "kind": "dynamic",
+      "requires": ["installed_connector", "authorized_write_action"],
+      "supports": ["tool_specific"],
+      "verified_in_test": true,
+      "note": "Capabilities must be rediscovered at runtime; never assume a connector exposes write actions."
+    },
+    {
+      "id": "github_actions_public_http",
+      "kind": "discovery_and_compute",
+      "requires": ["public_endpoint"],
+      "supports": ["scheduled_public_http_get", "deterministic_normalization", "state_commit"],
+      "verified_in_test": true,
+      "limitations": ["no_secret_should_be_committed", "authenticated_write_requires_separately_configured_repository_secret"]
+    },
+    {
+      "id": "artifact_only",
+      "kind": "production",
+      "requires": [],
+      "supports": ["code", "documents", "data", "analysis"],
+      "selectable_for_execution": false,
+      "note": "Producing an artifact without a verified delivery and settlement path is not economic execution."
+    },
+    {
+      "id": "human_gate",
+      "kind": "bridge",
+      "requires": ["single_bounded_action"],
+      "supports": ["authorize", "create_account_once", "configure_payout_once", "create_fork_once", "store_secret_once"],
+      "constraint": "Must unlock autonomous continuation; never outsource the core work."
+    }
+  ],
+  "routing_algorithm": [
+    "Enumerate currently available tool and connector capabilities.",
+    "Construct all valid delivery+settlement route pairs for each verified opportunity.",
+    "Prefer routes requiring no human action.",
+    "If primary route fails, try authorized fallbacks before ROUTE_BLOCKED.",
+    "If exactly one bounded human action unlocks a route with credible value, emit HUMAN_GATE.",
+    "If no delivery+settlement pair exists, keep the opportunity observed but do not execute it."
+  ]
+}

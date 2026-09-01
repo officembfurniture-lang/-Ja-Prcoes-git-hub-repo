@@ -1,0 +1,27 @@
+name: Value Engine Validate
+
+on:
+  pull_request:
+    paths:
+      - 'value-engine/**'
+      - '.github/workflows/value-engine-validate.yml'
+      - '.github/workflows/value-engine-cycle.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'value-engine/**'
+      - '.github/workflows/value-engine-validate.yml'
+      - '.github/workflows/value-engine-cycle.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate VALUE_ENGINE invariants
+        run: python3 value-engine/validate.py
+      - name: Syntax-check deterministic sensor
+        run: python3 -m py_compile value-engine/cycle.py value-engine/validate.py
