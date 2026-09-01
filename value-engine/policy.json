@@ -1,0 +1,60 @@
+{
+  "objective": "Maximize externally verified realized value while minimizing human intervention and avoiding false value claims.",
+  "opportunity_classes": [
+    "funded_task",
+    "agent_native_job",
+    "contest_or_prize",
+    "grant_or_challenge",
+    "paid_research_or_data_work",
+    "licensed_digital_artifact",
+    "authorized_cost_saving",
+    "future_machine_readable_demand"
+  ],
+  "deliverable_classes": [
+    "code",
+    "tests",
+    "documentation",
+    "research",
+    "analysis",
+    "dataset",
+    "structured_data",
+    "design_artifact",
+    "other_verifiable_digital_output"
+  ],
+  "hard_gates": {
+    "primary_source_verified": true,
+    "demand_or_reward_verified": true,
+    "acceptance_criteria_known": true,
+    "delivery_route_verified_before_production": true,
+    "settlement_route_verified_before_production": true,
+    "safety_and_legality_pass": true
+  },
+  "execution_rules": [
+    "Never equate advertised value with realized value.",
+    "Never select an opportunity solely because it has a bounty/reward label.",
+    "Never perform core work when delivery or settlement has no executable route.",
+    "If the preferred route is unavailable, attempt alternate authorized routes before rejecting the opportunity.",
+    "A HUMAN_GATE may request only one bounded authorization/setup action that unlocks further autonomous work; it may not transfer the actual task to the beneficiary.",
+    "Do not create draft pull requests in automated GitHub paths because the current connector ready-for-review transition is unreliable.",
+    "Do not merge/deliver a code artifact until an independent validation receipt for the exact artifact revision is successful.",
+    "Do not count merge/acceptance as payment; PAID requires external settlement evidence.",
+    "Do not contact third parties or send outreach unless the opportunity's native submission route explicitly constitutes the requested delivery or the beneficiary explicitly authorizes outreach.",
+    "Do not constrain discovery to a single platform, industry, deliverable type, geography, or value mechanism. Source adapters are replaceable."
+  ],
+  "selection_priority": [
+    "verified delivery and settlement route",
+    "objective acceptance criteria",
+    "low irreversible cost",
+    "short path to external verification",
+    "low competition or unique fit",
+    "high expected realized value per execution cycle"
+  ],
+  "terminal_results": [
+    "SELECT_NONE",
+    "ROUTE_BLOCKED",
+    "ABANDONED",
+    "DELIVERED",
+    "ACCEPTED",
+    "PAID"
+  ]
+}
