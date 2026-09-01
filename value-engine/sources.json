@@ -1,0 +1,48 @@
+{
+  "version": 2,
+  "principle": "No source, platform, industry or opportunity class is privileged. Sources are adapters and may be added or removed without changing the engine state machine.",
+  "sources": [
+    {
+      "id": "github_public_demand",
+      "adapter": "github_issue_search",
+      "enabled": true,
+      "role": "sensor",
+      "queries": [
+        "is:issue is:open bounty",
+        "is:issue is:open reward",
+        "is:issue is:open prize submission",
+        "is:issue is:open paid task",
+        "is:issue is:open grant challenge"
+      ],
+      "note": "Discovery only. A keyword match is never funding proof."
+    },
+    {
+      "id": "connected_runtime_tools",
+      "adapter": "runtime_connector_discovery",
+      "enabled": true,
+      "role": "semantic_worker",
+      "note": "At each ChatGPT-run cycle inspect currently installed connectors and their write actions; capabilities can change over time."
+    },
+    {
+      "id": "public_web",
+      "adapter": "runtime_web_search",
+      "enabled": true,
+      "role": "semantic_worker",
+      "note": "Search across domains for externally funded or directly monetizable digital work and machine-readable demand."
+    },
+    {
+      "id": "agent_native_markets",
+      "adapter": "native_api_or_connector",
+      "enabled": true,
+      "role": "preferred_when_authorized",
+      "note": "Prefer markets exposing machine-readable demand, agent submission and settlement. Do not assume credentials exist."
+    },
+    {
+      "id": "future_adapter",
+      "adapter": "discover_at_runtime",
+      "enabled": true,
+      "role": "expansion",
+      "note": "The cycle may add a new source class when a newly available tool or public interface creates a materially different execution route."
+    }
+  ]
+}
