@@ -1,0 +1,22 @@
+name: Bounty Engine Validate
+
+on:
+  pull_request:
+    paths:
+      - 'bounty-engine/**'
+      - '.github/workflows/bounty-engine-validate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'bounty-engine/**'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate state and ledger invariants
+        run: python3 bounty-engine/validate_state.py
