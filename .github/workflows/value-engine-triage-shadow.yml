@@ -1,0 +1,53 @@
+name: Value Engine Triage Shadow
+
+on:
+  push:
+    branches:
+      - experiment/value-engine-triage-v1
+    paths:
+      - value-engine/triage.py
+      - value-engine/test_triage.py
+      - value-engine/observations.ndjson
+      - .github/workflows/value-engine-triage-shadow.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  shadow-triage:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unit tests
+        working-directory: value-engine
+        run: python3 -m unittest -v test_triage.py
+      - name: Replay triage against persisted observations
+        working-directory: value-engine
+        run: |
+          python3 triage.py \
+            --observations observations.ndjson \
+            --queue /tmp/value-engine-triage-queue.ndjson \
+            --summary /tmp/value-engine-triage-summary.json \
+            --limit 50
+          cat /tmp/value-engine-triage-summary.json
+      - name: Enforce shadow invariants
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          summary = json.loads(Path('/tmp/value-engine-triage-summary.json').read_text())
+          assert summary['stage'] == 'PRE_VERIFY_TRIAGE'
+          assert summary['authoritative'] is False
+          assert 0 <= summary['verify_queue_emitted'] <= 50
+
+          queue = Path('/tmp/value-engine-triage-queue.ndjson').read_text().splitlines()
+          for line in queue:
+              item = json.loads(line)
+              assert item['status'] == 'OBSERVED'
+              assert item['primary_source_verified'] is False
+              assert item['demand_or_reward_verified'] is False
+              assert item['realized_value'] == 0
+              assert item['disposition'] == 'QUEUE_VERIFY'
+          PY
