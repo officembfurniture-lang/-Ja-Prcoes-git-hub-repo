@@ -1,0 +1,377 @@
+{
+  "generated_at": "2026-09-11T18:40:14.016902+00:00",
+  "baseline_code_sha256": "05ea8915a39545e86a93d6aa632f175bdceb8ce9e685754c27a68c36108c3de9",
+  "repair_code_sha256": "be42622c408e5555ac10f84edf81e0772ccdd5b8e590fd1782543d389b1ba83e",
+  "repair_tests_sha256": "0b0d30416485aa7b5c085350c2d522cc3830bd350bf575f4b1e69b2b9b20116b",
+  "main_head": "a8261a7cb681367dc195897d97383612154b2143",
+  "triage_base_head": "bb49d5f88ed78ddd7bf3022ea5255003f7fe8558",
+  "omega_head": "effec24d744d6cb0b899eed10031e97d9c0eb82e",
+  "input_records": 2697,
+  "input_sha256": "5bdef4291215676501d6dfdc907c20f11aee914b2c966750a3943d00baa3df4b",
+  "replays": {
+    "after": {
+      "authoritative": false,
+      "dispositions": {
+        "DROP_LOW_SIGNAL": 1279,
+        "HOLD_CAPITAL_REQUIRED": 7,
+        "HOLD_DEPENDENCIES": 1,
+        "HOLD_HUMAN_GATE": 18,
+        "HOLD_PRIMARY_SOURCE": 68,
+        "HOLD_REWARD_UNCONFIRMED": 8,
+        "HOLD_START_PROHIBITED": 27,
+        "QUEUE_VERIFY": 219
+      },
+      "engine": "VALUE_ENGINE_v2",
+      "note": "Triage is not verification, selection, execution, delivery, settlement, or realized value.",
+      "reference_time": "2026-09-11T14:24:35Z",
+      "stage": "PRE_VERIFY_TRIAGE",
+      "unique_observations": 1627,
+      "verify_queue_emitted": 50,
+      "verify_queue_total": 219
+    },
+    "before": {
+      "authoritative": false,
+      "dispositions": {
+        "DROP_LOW_SIGNAL": 1121,
+        "HOLD_CAPITAL_REQUIRED": 6,
+        "HOLD_HUMAN_GATE": 18,
+        "HOLD_PRIMARY_SOURCE": 64,
+        "HOLD_REWARD_UNCONFIRMED": 5,
+        "HOLD_START_PROHIBITED": 27,
+        "QUEUE_VERIFY": 386
+      },
+      "engine": "VALUE_ENGINE_v2",
+      "note": "Triage is not verification, selection, execution, delivery, settlement, or realized value.",
+      "reference_time": "2026-09-11T14:24:35Z",
+      "stage": "PRE_VERIFY_TRIAGE",
+      "unique_observations": 1627,
+      "verify_queue_emitted": 50,
+      "verify_queue_total": 386
+    }
+  },
+  "metamorphic_checks": {
+    "query_metadata_invariance_records": 1627,
+    "reverse_input_order_invariant": true
+  },
+  "transition_counts": [
+    {
+      "after": "DROP_LOW_SIGNAL",
+      "before": "DROP_LOW_SIGNAL",
+      "count": 1121
+    },
+    {
+      "after": "HOLD_CAPITAL_REQUIRED",
+      "before": "HOLD_CAPITAL_REQUIRED",
+      "count": 6
+    },
+    {
+      "after": "HOLD_HUMAN_GATE",
+      "before": "HOLD_HUMAN_GATE",
+      "count": 18
+    },
+    {
+      "after": "HOLD_PRIMARY_SOURCE",
+      "before": "HOLD_PRIMARY_SOURCE",
+      "count": 64
+    },
+    {
+      "after": "HOLD_REWARD_UNCONFIRMED",
+      "before": "HOLD_REWARD_UNCONFIRMED",
+      "count": 5
+    },
+    {
+      "after": "HOLD_START_PROHIBITED",
+      "before": "HOLD_START_PROHIBITED",
+      "count": 27
+    },
+    {
+      "after": "DROP_LOW_SIGNAL",
+      "before": "QUEUE_VERIFY",
+      "count": 158
+    },
+    {
+      "after": "HOLD_CAPITAL_REQUIRED",
+      "before": "QUEUE_VERIFY",
+      "count": 1
+    },
+    {
+      "after": "HOLD_DEPENDENCIES",
+      "before": "QUEUE_VERIFY",
+      "count": 1
+    },
+    {
+      "after": "HOLD_PRIMARY_SOURCE",
+      "before": "QUEUE_VERIFY",
+      "count": 4
+    },
+    {
+      "after": "HOLD_REWARD_UNCONFIRMED",
+      "before": "QUEUE_VERIFY",
+      "count": 3
+    },
+    {
+      "after": "QUEUE_VERIFY",
+      "before": "QUEUE_VERIFY",
+      "count": 219
+    }
+  ],
+  "probe_smokes": {
+    "P-0002": {
+      "kind": "owner_controlled_local_smoke_not_external_use",
+      "ok": true,
+      "output_sha256": "cb47f28dd5c8f704a768ae813c6903d5a6d6491a1a05213a3651108add1f972d",
+      "source_sha256": "d6508d18c17daa27859c592bc3a5bcb400041da2f37201f7fcf8f8a5ccf05aa8"
+    },
+    "P-0003": {
+      "kind": "owner_controlled_local_smoke_not_external_use",
+      "ok": true,
+      "output_sha256": "a6a112bf52103ac02bb6e757d28f85d791081a12c29e8fa1a39c8e42a6748773",
+      "source_sha256": "8825d18f6bd8b9f5d00d6ebf3954105ebec157051f75f223d43d0ec209a92f3a"
+    },
+    "P-0004": {
+      "kind": "owner_controlled_local_smoke_not_external_use",
+      "ok": true,
+      "output_sha256": "673610212e5814a9013b5d0b2ec52152841018f5799f22d631a0099bc73dd669",
+      "source_sha256": "5af5f13775df406d23c3511e3d3e4f943231bbada388991a8c94e5bde61f7834"
+    },
+    "P-0005": {
+      "kind": "owner_controlled_local_smoke_not_external_use",
+      "ok": true,
+      "output_sha256": "d90327faa2e3bec0d17ec57dad24fc04d47f8afef774878fd5faf5d2ad5bdef2",
+      "source_sha256": "e4544a7bcd75c20cd1e9313c0418677fc50ffc1ce4d9d7b34f4b3034bc015b36"
+    },
+    "P-0006": {
+      "kind": "owner_controlled_local_smoke_not_external_use",
+      "ok": true,
+      "output_sha256": "16cd4ec669f4aff17f25fe393a8b9b131506050d96be1258a4f66d998fd30fc4",
+      "source_sha256": "cdf7a58d1d1ce691552721de674303946064c5796c5c9b3c15c9126c979d8c8d"
+    },
+    "P-0007": {
+      "kind": "owner_controlled_local_smoke_not_external_use",
+      "ok": true,
+      "output_sha256": "3bc2ded73f6f3e3598fdaadc6cadd47b2deade568683754b97bbde9767d1bf95",
+      "source_sha256": "bfd9a5a23d0cc571ae511f874c4ee3e3abe89e757d3e52354ec28da882afc0a1"
+    }
+  },
+  "tracked_bytes_unchanged_by_validation": true,
+  "secret_scan": {
+    "findings": [],
+    "kind": "scoped_regex_not_exhaustive",
+    "rules": [
+      "private_key",
+      "github_token",
+      "aws_access_key",
+      "openai_key",
+      "slack_token",
+      "google_key"
+    ],
+    "tracked_file_instances": 142
+  },
+  "tests": {
+    "expanded_suite_original_code": {
+      "errors": 2,
+      "failures": 16,
+      "ok": false,
+      "tests": 24
+    },
+    "expanded_suite_repaired_code": {
+      "errors": 0,
+      "failures": 0,
+      "ok": true,
+      "tests": 24
+    },
+    "original_suite_original_code": {
+      "errors": 0,
+      "failures": 0,
+      "ok": true,
+      "tests": 8
+    }
+  },
+  "checks": [
+    {
+      "argv": [
+        "value-engine/validate.py"
+      ],
+      "repository_tree": "horyzont-github",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "bounty-engine/validate_state.py"
+      ],
+      "repository_tree": "horyzont-github",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "value-engine/validate.py"
+      ],
+      "repository_tree": "triage",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "bounty-engine/validate_state.py"
+      ],
+      "repository_tree": "triage",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "-m",
+        "unittest",
+        "-v",
+        "test_omega_shadow_driver_v0.py"
+      ],
+      "repository_tree": "omega",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "-m",
+        "compileall",
+        "-q",
+        "."
+      ],
+      "repository_tree": "horyzont-github",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "-m",
+        "compileall",
+        "-q",
+        "."
+      ],
+      "repository_tree": "triage",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "-m",
+        "compileall",
+        "-q",
+        "."
+      ],
+      "repository_tree": "omega",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "repository_tree": "triage",
+      "exit_code": 0
+    }
+  ],
+  "temporal_replay": {
+    "generated_at": "2026-09-12T23:36:22.197733+00:00",
+    "frozen_code_sha256": "be42622c408e5555ac10f84edf81e0772ccdd5b8e590fd1782543d389b1ba83e",
+    "current_main_head": "cdf77e0849bc1b59d3703a2abbbdff44ce5bf01d",
+    "baseline_equals_current_main_code": true,
+    "original_observations_preserved_exactly": true,
+    "current_full_input_sha256": "0348e4b102ca4d8825f63f1ffc8dcc69a268b8be3a747171d060e4c237a853c4",
+    "later_input_sha256": "40ed48229ba754d8e26f16451d792f74532e73faf347853a65dff454db0af1f1",
+    "reference_time": "2026-09-12T22:15:38+00:00",
+    "cohorts": {
+      "later_records": {
+        "raw_records": 423,
+        "unique_urls": 323,
+        "dispositions": {
+          "baseline": {
+            "DROP_LOW_SIGNAL": 187,
+            "HOLD_CAPITAL_REQUIRED": 1,
+            "HOLD_HUMAN_GATE": 1,
+            "HOLD_PRIMARY_SOURCE": 14,
+            "HOLD_REWARD_UNCONFIRMED": 7,
+            "HOLD_START_PROHIBITED": 4,
+            "QUEUE_VERIFY": 109
+          },
+          "repair": {
+            "DROP_LOW_SIGNAL": 239,
+            "HOLD_CAPITAL_REQUIRED": 1,
+            "HOLD_HUMAN_GATE": 1,
+            "HOLD_PRIMARY_SOURCE": 14,
+            "HOLD_REWARD_UNCONFIRMED": 7,
+            "HOLD_START_PROHIBITED": 4,
+            "QUEUE_VERIFY": 57
+          }
+        }
+      },
+      "unseen_urls": {
+        "raw_records": 236,
+        "unique_urls": 236,
+        "dispositions": {
+          "baseline": {
+            "DROP_LOW_SIGNAL": 129,
+            "HOLD_CAPITAL_REQUIRED": 1,
+            "HOLD_HUMAN_GATE": 1,
+            "HOLD_PRIMARY_SOURCE": 14,
+            "HOLD_REWARD_UNCONFIRMED": 7,
+            "HOLD_START_PROHIBITED": 3,
+            "QUEUE_VERIFY": 81
+          },
+          "repair": {
+            "DROP_LOW_SIGNAL": 166,
+            "HOLD_CAPITAL_REQUIRED": 1,
+            "HOLD_HUMAN_GATE": 1,
+            "HOLD_PRIMARY_SOURCE": 14,
+            "HOLD_REWARD_UNCONFIRMED": 7,
+            "HOLD_START_PROHIBITED": 3,
+            "QUEUE_VERIFY": 44
+          }
+        }
+      },
+      "current_full_corpus": {
+        "raw_records": 3120,
+        "unique_urls": 1863,
+        "dispositions": {
+          "baseline": {
+            "DROP_LOW_SIGNAL": 1285,
+            "HOLD_CAPITAL_REQUIRED": 7,
+            "HOLD_HUMAN_GATE": 19,
+            "HOLD_PRIMARY_SOURCE": 78,
+            "HOLD_REWARD_UNCONFIRMED": 12,
+            "HOLD_START_PROHIBITED": 29,
+            "QUEUE_VERIFY": 433
+          },
+          "repair": {
+            "DROP_LOW_SIGNAL": 1458,
+            "HOLD_CAPITAL_REQUIRED": 8,
+            "HOLD_DEPENDENCIES": 1,
+            "HOLD_HUMAN_GATE": 19,
+            "HOLD_PRIMARY_SOURCE": 82,
+            "HOLD_REWARD_UNCONFIRMED": 15,
+            "HOLD_START_PROHIBITED": 29,
+            "QUEUE_VERIFY": 251
+          }
+        }
+      }
+    },
+    "invariants": {
+      "later_query_metadata_checks": 323,
+      "input_order_independent": true,
+      "stages_not_promoted": true
+    },
+    "patch": {
+      "path": "HORYZONT_TRIAGE_FIX.patch",
+      "sha256": "3036a43586941dd12e887d1e7d56129a8ac1e2550c499ad8461ce453514ec164",
+      "applies_to_current_main": true,
+      "applied_bytes_equal_tested_bytes": true
+    },
+    "limitations": [
+      "Temporal replay has no independent opportunity-quality labels",
+      "Smaller queue is not evidence of better precision or realized value",
+      "No threshold or heuristic was retuned on the later records"
+    ]
+  },
+  "scope": {
+    "canonical_state_changed": false,
+    "economic_stages_promoted": false,
+    "local_checks_are_external_use": false,
+    "full_canonical_checks": "blocked_missing_fresh_bytes",
+    "remote_ci_receipt": "See pull request for exact commit; this file records completed local checks"
+  }
+}
