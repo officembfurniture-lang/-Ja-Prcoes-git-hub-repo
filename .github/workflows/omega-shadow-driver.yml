@@ -5,8 +5,12 @@ on:
     paths:
       - 'omega_shadow_driver_v0.py'
       - 'omega_shadow_fixtures_v0.json'
+      - 'omega_shadow_fixtures_v1.json'
       - 'test_omega_shadow_driver_v0.py'
       - '.github/workflows/omega-shadow-driver.yml'
+      - 'OMEGA_REPAIR_2026-09-13.md'
+      - 'omega_repair_evidence_2026-09-13.json'
+      - 'shadow_results/p0003_distribution_shadow_v0.json'
   workflow_dispatch:
 
 permissions:
@@ -23,3 +27,7 @@ jobs:
           python-version: '3.12'
       - name: Run deterministic shadow-driver tests
         run: python -m unittest -v test_omega_shadow_driver_v0.py
+      - name: Compile and validate regression fixture JSON
+        run: |
+          python -m compileall -q omega_shadow_driver_v0.py test_omega_shadow_driver_v0.py
+          python -m json.tool omega_shadow_fixtures_v1.json > /dev/null
