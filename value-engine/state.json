@@ -20,13 +20,21 @@
   },
   "counters": {
     "observed": 3279,
-    "verified": 0,
-    "selected": 0,
-    "produced": 0,
-    "delivered": 0,
-    "accepted": 0,
+    "verified": 2,
+    "selected": 2,
+    "produced": 2,
+    "delivered": 2,
+    "accepted": 2,
     "paid": 0,
     "human_gates": 0
+  },
+  "last_external_outcome": {
+    "opportunity_id": "Scottcjn/rustchain-bounties#1102:bottube-agents-search",
+    "status": "ACCEPTED",
+    "amount": 5,
+    "currency": "RTC",
+    "payment_evidence": null,
+    "note": "Acceptance is externally verified; payment remains unverified. See outcomes.ndjson."
   },
   "inherited_from": {
     "engine": "BOUNTY_ENGINE_v1",
@@ -41,6 +49,6 @@
     "selected": 0,
     "delivered": 0,
     "paid": 0,
-    "note": "Sensor cycle only; observations are not value and require VERIFY + ROUTE before execution."
+    "note": "Sensor cycle only; observations are not value and require VERIFY + ROUTE before execution. External semantic outcomes are tracked separately in outcomes.ndjson."
   }
 }
