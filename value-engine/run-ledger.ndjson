@@ -95,3 +95,4 @@
 {"at": "2026-09-16T11:28:52Z", "cycle_id": "cycle-95-35090525247", "errors": [], "new_observations": 44, "realized_value": 0, "result": "SENSE_COMPLETE"}
 {"at": "2026-09-16T16:52:05Z", "cycle_id": "cycle-96-35124593636", "errors": [], "new_observations": 44, "realized_value": 0, "result": "SENSE_COMPLETE"}
 {"at": "2026-09-16T20:06:04Z", "cycle_id": "cycle-97-35144494195", "errors": [], "new_observations": 44, "realized_value": 0, "result": "SENSE_COMPLETE"}
+{"at": "2026-09-16T22:54:59Z", "cycle_id": "cycle-98-35159918681", "errors": [], "new_observations": 41, "realized_value": 0, "result": "SENSE_COMPLETE"}
