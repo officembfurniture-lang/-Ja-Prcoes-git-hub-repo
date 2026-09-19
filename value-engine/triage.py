@@ -26,6 +26,24 @@ VALUE_RE = re.compile(
     re.IGNORECASE,
 )
 
+# These are conservative routing signals, not proof of funded demand. Search
+# queries and URL tokens must never manufacture evidence for an observation.
+FUNDING_RE = re.compile(r"\b(?:funded|escrowed|funding confirmed)\b|\bfunding\s*:")
+UNFUNDED_RE = re.compile(
+    r"\b(?:unfunded|(?:not|no|never)\s+(?:yet\s+)?(?:funded|escrowed)|"
+    r"funding\s+(?:is\s+)?(?:not\s+confirmed|unconfirmed))\b"
+)
+WALLET_DEPENDENCY_RE = re.compile(
+    r"\b(?:requires?|needs?)\s+(?:an?\s+)?(?:authorized\s+)?funded\s+"
+    r"[^.\n]{0,60}\bwallet\b|"
+    r"\bresume only\b[^.\n]{0,100}\bwallet\b"
+)
+DISCOVERY_HOLD_RE = re.compile(
+    r"\bno opportunity\b[^.\n]{0,100}\bpass\b|"
+    r"\bopportunity\s+not yet selected\b|"
+    r"\bno (?:current )?pass opportunity\b"
+)
+
 MIRROR_MARKERS = (
     "bounty-plaza",
     "bountyscout",
@@ -36,18 +54,22 @@ MIRROR_MARKERS = (
 
 
 def parse_time(value: str | None) -> datetime | None:
-    if not value:
+    if not isinstance(value, str) or not value:
         return None
     try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        # Guessing a timezone would manufacture freshness and revision order.
+        if parsed.tzinfo is None or parsed.utcoffset() is None:
+            return None
+        return parsed.astimezone(timezone.utc)
+    except (ValueError, OverflowError):
         return None
 
 
 def text_of(record: dict) -> str:
     return "\n".join(
         str(record.get(key) or "")
-        for key in ("title", "body_excerpt", "signal_query", "url")
+        for key in ("title", "body_excerpt")
     ).lower()
 
 
@@ -70,7 +92,8 @@ def classify(record: dict, reference_time: datetime) -> dict:
         score += 2
         reasons.append("explicit_demand_signal")
 
-    if phrase(text, "funded", "escrowed", "funding confirmed", "funding:"):
+    explicitly_unfunded = bool(UNFUNDED_RE.search(text))
+    if FUNDING_RE.search(text) and not explicitly_unfunded:
         score += 4
         reasons.append("funding_language_present")
 
@@ -105,7 +128,7 @@ def classify(record: dict, reference_time: datetime) -> dict:
     else:
         risks.append("freshness_unknown")
 
-    if phrase(
+    if explicitly_unfunded or phrase(
         text,
         "proposed bounty",
         "bounty proposal",
@@ -138,6 +161,12 @@ def classify(record: dict, reference_time: datetime) -> dict:
         risks.append("human_gate_required")
         score -= 4
 
+    if phrase(text, "hard prerequisites", "before this work begins") and phrase(
+        text, "blockers", "must be resolved", "must be completed", "unresolved"
+    ):
+        risks.append("unresolved_execution_dependencies")
+        score -= 8
+
     if phrase(
         text,
         "claim bond",
@@ -147,12 +176,24 @@ def classify(record: dict, reference_time: datetime) -> dict:
         "self-funded",
         "fully fund that child",
         "entry fee",
-    ):
+    ) or WALLET_DEPENDENCY_RE.search(text):
         risks.append("capital_required")
         score -= 8
 
-    if any(marker in text for marker in MIRROR_MARKERS):
+    # URL markers may conservatively flag a mirror, but are not offer evidence.
+    source_locator = str(record.get("url") or "").lower()
+    if any(marker in text or marker in source_locator for marker in MIRROR_MARKERS):
         risks.append("mirror_or_radar_source")
+        score -= 12
+
+    if phrase(text, "live discovery snapshot", "field report", "field run") and (
+        DISCOVERY_HOLD_RE.search(text) or "no opportunity selected" in text
+    ):
+        risks.append("discovery_report_not_direct_offer")
+        score -= 12
+
+    if "application owners" in text and "requested grant amount" in text:
+        risks.append("grant_application_not_direct_offer")
         score -= 12
 
     if "primary_source_verified\": true" in text:
@@ -161,12 +202,16 @@ def classify(record: dict, reference_time: datetime) -> dict:
 
     if "explicit_start_prohibition" in risks:
         disposition = "HOLD_START_PROHIBITED"
-    elif "mirror_or_radar_source" in risks:
+    elif any(risk in risks for risk in (
+        "mirror_or_radar_source", "discovery_report_not_direct_offer", "grant_application_not_direct_offer"
+    )):
         disposition = "HOLD_PRIMARY_SOURCE"
     elif "capital_required" in risks:
         disposition = "HOLD_CAPITAL_REQUIRED"
     elif "human_gate_required" in risks:
         disposition = "HOLD_HUMAN_GATE"
+    elif "unresolved_execution_dependencies" in risks:
+        disposition = "HOLD_DEPENDENCIES"
     elif "reward_not_yet_confirmed" in risks:
         disposition = "HOLD_REWARD_UNCONFIRMED"
     elif score >= 8:
@@ -217,11 +262,28 @@ def newest_by_url(records: Iterable[dict]) -> list[dict]:
         if current is None:
             latest[key] = record
             continue
-        new_time = parse_time(record.get("detected_at")) or datetime.min.replace(tzinfo=timezone.utc)
-        old_time = parse_time(current.get("detected_at")) or datetime.min.replace(tzinfo=timezone.utc)
-        if new_time >= old_time:
+        if revision_key(record) > revision_key(current):
             latest[key] = record
     return list(latest.values())
+
+
+def revision_key(record: dict) -> tuple:
+    """Prefer source revision time; a later fetch is not a newer source."""
+    unknown = datetime.min.replace(tzinfo=timezone.utc)
+    return (
+        parse_time(record.get("updated_at")) or parse_time(record.get("created_at")) or unknown,
+        parse_time(record.get("detected_at")) or unknown,
+        str(record.get("fingerprint") or ""),
+        json.dumps(record, ensure_ascii=False, sort_keys=True),
+    )
+
+
+def queue_key(item: dict) -> tuple:
+    updated = parse_time(item.get("updated_at"))
+    epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
+    # Timedelta avoids platform-specific timestamp conversion near year 1.
+    recency = (updated - epoch).total_seconds() if updated else float("-inf")
+    return (-item["triage_score"], -recency, str(item.get("url") or ""))
 
 
 def reference_time(records: list[dict]) -> datetime:
@@ -236,7 +298,7 @@ def run(observations: Path, queue_path: Path, summary_path: Path, limit: int) ->
     triaged = [classify(record, ref) for record in records]
     verify = sorted(
         (item for item in triaged if item["disposition"] == "QUEUE_VERIFY"),
-        key=lambda item: (-item["triage_score"], item.get("updated_at") or ""),
+        key=queue_key,
     )[:limit]
 
     with queue_path.open("w", encoding="utf-8") as handle:
