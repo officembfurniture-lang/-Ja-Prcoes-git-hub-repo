@@ -2,7 +2,7 @@
   "engine": "VALUE_ENGINE_v2",
   "schema_version": 2,
   "mode": "shadow_until_route_verified",
-  "cycle": 110,
+  "cycle": 111,
   "phase": "IDLE",
   "lease": {
     "cycle_id": null,
@@ -19,7 +19,7 @@
     "cost_savings": []
   },
   "counters": {
-    "observed": 4683,
+    "observed": 4728,
     "verified": 2,
     "selected": 2,
     "produced": 2,
@@ -42,9 +42,9 @@
     "ledger_path": "bounty-engine/ledger.ndjson"
   },
   "last_cycle_result": {
-    "cycle_id": "cycle-110-35408929157",
-    "at": "2026-09-19T00:19:05Z",
-    "new_observations": 43,
+    "cycle_id": "cycle-111-35425057620",
+    "at": "2026-09-19T05:51:27Z",
+    "new_observations": 45,
     "source_errors": [],
     "selected": 0,
     "delivered": 0,
