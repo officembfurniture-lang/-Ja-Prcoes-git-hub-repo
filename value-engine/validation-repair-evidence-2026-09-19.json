@@ -1,0 +1,153 @@
+{
+  "date": "2026-09-19",
+  "base_commit": "a4e568bfc71412e69ac063dd33765b1102eaca36",
+  "scope": "Local validator repair; synthetic negative cases and real persisted-state validation. No opportunity stage or value advancement.",
+  "inherited_diagnostic_date": "2026-09-08",
+  "original_validator_sha256": "b141afcc5db2b707477a825b23ef4fb79f183da02f670775d43503518e106c40",
+  "matches_prior_diagnostic_validator": true,
+  "diagnostic_replay": [
+    {
+      "version": "before",
+      "case": "baseline",
+      "returncode": 0,
+      "accepted": true,
+      "message": "VALUE_ENGINE invariants: OK"
+    },
+    {
+      "version": "before",
+      "case": "produce_without_active",
+      "returncode": 0,
+      "accepted": true,
+      "message": "VALUE_ENGINE invariants: OK"
+    },
+    {
+      "version": "before",
+      "case": "unverified_production",
+      "returncode": 0,
+      "accepted": true,
+      "message": "VALUE_ENGINE invariants: OK"
+    },
+    {
+      "version": "before",
+      "case": "unknown_routes",
+      "returncode": 0,
+      "accepted": true,
+      "message": "VALUE_ENGINE invariants: OK"
+    },
+    {
+      "version": "before",
+      "case": "negative_counter_control",
+      "returncode": 1,
+      "accepted": false,
+      "message": "VALUE_ENGINE validation failed: counter observed must be a non-negative integer"
+    },
+    {
+      "version": "after",
+      "case": "baseline",
+      "returncode": 0,
+      "accepted": true,
+      "message": "VALUE_ENGINE invariants: OK"
+    },
+    {
+      "version": "after",
+      "case": "produce_without_active",
+      "returncode": 1,
+      "accepted": false,
+      "message": "VALUE_ENGINE validation failed: production active_opportunity must be an object"
+    },
+    {
+      "version": "after",
+      "case": "unverified_production",
+      "returncode": 1,
+      "accepted": false,
+      "message": "VALUE_ENGINE validation failed: production requires a fully populated lease"
+    },
+    {
+      "version": "after",
+      "case": "unknown_routes",
+      "returncode": 1,
+      "accepted": false,
+      "message": "VALUE_ENGINE validation failed: production requires a fully populated lease"
+    },
+    {
+      "version": "after",
+      "case": "negative_counter_control",
+      "returncode": 1,
+      "accepted": false,
+      "message": "VALUE_ENGINE validation failed: counter observed must be a non-negative integer"
+    }
+  ],
+  "old_validator_tests": {
+    "returncode": 1,
+    "summary": [
+      "Ran 24 tests in 0.109s",
+      "",
+      "FAILED (failures=78, errors=9)"
+    ]
+  },
+  "repaired_validator_tests": {
+    "returncode": 0,
+    "summary": [
+      "Ran 24 tests in 0.080s",
+      "",
+      "OK"
+    ]
+  },
+  "pr12_combined_tests": {
+    "triage_commit": "58129ef3489a30b8f506de65846091d65cf25936",
+    "returncode": 0,
+    "summary": [
+      "Ran 48 tests in 1.671s",
+      "",
+      "OK"
+    ]
+  },
+  "checks": {
+    "full_value_engine_tests": {
+      "returncode": 0,
+      "summary": [
+        "Ran 32 tests in 1.693s",
+        "",
+        "OK"
+      ]
+    },
+    "value_engine_state": {
+      "returncode": 0,
+      "summary": [
+        "VALUE_ENGINE invariants: OK"
+      ]
+    },
+    "bounty_engine_state": {
+      "returncode": 0,
+      "summary": [
+        "BOUNTY_ENGINE state/ledger validation: OK"
+      ]
+    },
+    "compileall": {
+      "returncode": 0,
+      "summary": []
+    },
+    "diff_check": {
+      "returncode": 0,
+      "summary": []
+    },
+    "secret_scan": {
+      "files": 56,
+      "pattern_families": 5,
+      "hits": [],
+      "scope": "Scoped pattern scan; not an exhaustive secret audit."
+    }
+  },
+  "state_and_ledgers_unchanged": true,
+  "state_file_sha256": {
+    "value-engine/state.json": "fb4684630efa09d4ed45694176be9992d423030b76bb64c56a4ee4483e0448fd",
+    "value-engine/observations.ndjson": "bec2b98eb716c4aa4abf5821891e88c93cf623abcd707d8ee9ef63e1fa9ceb6b",
+    "value-engine/run-ledger.ndjson": "aa8408a4fe987b13ba5d4cc4996d346ced9452d5828c712be51c5ef9b86afb3f",
+    "value-engine/outcomes.ndjson": "45ab9a0010976c0f2c423feae8b0979645122ec8e2e10e739b78e51f2b41b47a"
+  },
+  "limitations": [
+    "Receipt and gate validation is structural, not independent authentication.",
+    "Regression tests are not a held-out trial of Omega or a measurement of human burden.",
+    "Kanon verification is blocked before materialization; no canonical archive was modified."
+  ]
+}

@@ -69,3 +69,34 @@ Every active cycle holds a lease (`cycle_id`, owner, acquired/expires timestamps
 ## Known connector-specific repair
 
 The tested GitHub connector can branch, commit, open non-draft PRs, comment and merge in repositories with write access. It currently exposes no fork action, and its draft→ready mutation failed during testing. Therefore automated GitHub delivery creates non-draft PRs only after validation readiness and uses alternative routes or a bounded human gate for external forks.
+
+## Enforced state and receipt contract
+
+`validate.py` rejects `PRODUCE`, `VALIDATE`, `DELIVER`, `OBSERVE` and `SETTLE`
+without a non-empty `active_opportunity.id`, a complete lease, and all six
+`policy.hard_gates` repeated as literal `true` on that opportunity. Policy flags
+describe requirements; they are not proof that a particular opportunity passed.
+The lease must have a named owner/cycle and timezone-aware acquisition/expiry
+timestamps in increasing order. Historical validation does not establish that a
+lease is currently live; the worker must check expiry before acting.
+
+The opportunity's `delivery_route` and `settlement_route` must reference the
+route registry with compatible kinds. Discovery-only, artifact-only, bridge,
+and explicitly non-executable routes cannot satisfy those fields. A `dynamic`
+route still requires current, opportunity-specific verification; a historic
+`verified_in_test` flag alone neither grants nor denies execution authority.
+
+Counters are non-negative integers (booleans are rejected). Cash entries need a
+positive finite amount, non-empty currency/evidence, and a timezone-aware receipt
+timestamp. `outcomes.ndjson` is checked as JSON records: ACCEPTED and PAID need
+delivery/acceptance references, amount, currency and acceptance time. PAID also
+needs `payment_evidence` and `received_at` no earlier than acceptance. Each paid
+opportunity has one final PAID receipt; `counters.paid` must equal their count.
+Partial transfers are not a final PAID outcome. Keep acceptance separate from
+settlement, and retain earlier records when appending the final receipt.
+
+These checks validate structure and declared gates. They do not contact sources,
+authenticate receipts, prove control of a payout destination, or establish a
+balance. The semantic worker must perform those independent checks before
+recording verification or payment. No current opportunity, observation, award,
+route permission, or realized-value bucket is changed by running the validator.
