@@ -117,3 +117,4 @@
 {"at": "2026-09-19T23:01:35Z", "cycle_id": "cycle-117-35474950288", "errors": [], "new_observations": 44, "realized_value": 0, "result": "SENSE_COMPLETE"}
 {"at": "2026-09-20T01:06:24Z", "cycle_id": "cycle-118-35480513747", "errors": [], "new_observations": 40, "realized_value": 0, "result": "SENSE_COMPLETE"}
 {"at": "2026-09-20T06:13:40Z", "cycle_id": "cycle-119-35493672295", "errors": [], "new_observations": 42, "realized_value": 0, "result": "SENSE_COMPLETE"}
+{"at": "2026-09-20T11:23:31Z", "cycle_id": "cycle-120-35507667582", "errors": [], "new_observations": 40, "realized_value": 0, "result": "SENSE_COMPLETE"}
