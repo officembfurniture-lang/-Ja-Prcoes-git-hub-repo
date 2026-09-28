@@ -142,6 +142,7 @@ def classify(record: dict, reference_time: datetime) -> dict:
     if phrase(
         text,
         "do not start",
+        "do not begin",
         "do not claim",
         "do not sign",
         "incomplete mirror",

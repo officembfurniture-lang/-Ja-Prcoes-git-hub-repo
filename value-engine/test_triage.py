@@ -182,6 +182,41 @@ class ClassifyTests(unittest.TestCase):
         )
         self.assertEqual(item["disposition"], "HOLD_START_PROHIBITED")
 
+    def test_do_not_begin_work_is_an_explicit_start_prohibition(self):
+        # The source issue remains open only to reconcile an awarded payout.
+        # An open issue and its retained reward terms do not reopen the work.
+        for statement in (
+            "Do not begin additional work or incur test costs in expectation of another award.",
+            "DO NOT BEGIN work until the current assignment is resolved.",
+        ):
+            with self.subTest(statement=statement):
+                item = triage.classify(obs(
+                    "$50 USDC bounty: agent integration",
+                    "Acceptance criteria: tests. Payment is made after acceptance. " + statement,
+                ), REF)
+                self.assertEqual(item["disposition"], "HOLD_START_PROHIBITED")
+                self.assertIn("explicit_start_prohibition", item["risks"])
+                self.assertFalse(item["primary_source_verified"])
+                self.assertFalse(item["demand_or_reward_verified"])
+                self.assertEqual(item["realized_value"], 0)
+
+    def test_free_acceptance_path_is_not_a_start_prohibition(self):
+        item = triage.classify(obs(
+            "$50 USDC bounty: agent integration",
+            "No payment, wallet funding, or private key is required for the free acceptance path. "
+            "Acceptance criteria: tests. Payment is made after acceptance.",
+        ), REF)
+        self.assertEqual(item["disposition"], "QUEUE_VERIFY")
+        self.assertNotIn("explicit_start_prohibition", item["risks"])
+
+    def test_previous_awards_do_not_close_an_open_multi_award_offer(self):
+        item = triage.classify(obs(
+            "$50 USDC bounty: additional integrations",
+            "Previous awards were paid. New submissions remain open. "
+            "Acceptance criteria: tests. Payment is made after acceptance.",
+        ), REF)
+        self.assertEqual(item["disposition"], "QUEUE_VERIFY")
+
     def test_radar_mirror_never_enters_verify_queue_directly(self):
         item = triage.classify(
             obs(
@@ -195,6 +230,18 @@ class ClassifyTests(unittest.TestCase):
 
 
 class PipelineTests(unittest.TestCase):
+    def test_newer_start_prohibition_removes_stale_offer_from_queue(self):
+        old = obs("$50 USDC bounty", "Acceptance criteria: tests. Payment is made after acceptance.")
+        current = dict(old, fingerprint="closed-to-new-work", updated_at="2026-09-11T11:00:00Z",
+                       body_excerpt="Do not begin additional work. Acceptance criteria: tests. Payout pending.")
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            source, queue, summary = (root / name for name in ("input.ndjson", "queue.ndjson", "summary.json"))
+            source.write_text("\n".join(json.dumps(v) for v in (current, old)) + "\n")
+            result = triage.run(source, queue, summary, limit=50)
+            self.assertEqual(queue.read_text(), "")
+            self.assertEqual(result["dispositions"], {"HOLD_START_PROHIBITED": 1})
+
     def test_equal_revision_tie_is_input_order_independent(self):
         first = obs("a", url="https://github.com/example/repo/issues/1")
         second = obs("b", url=first["url"])

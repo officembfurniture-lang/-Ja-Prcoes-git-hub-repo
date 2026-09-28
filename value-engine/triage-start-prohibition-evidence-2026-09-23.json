@@ -1,0 +1,51 @@
+{
+  "checked_at_utc": "2026-09-23T10:27:30.335798+00:00",
+  "baseline_commit": "21881980198f55171bd13e4ddc71da3e954c57d3",
+  "scope": "Narrow triage regression; not a held-out effectiveness trial, qualification, execution, payment or Omega promotion.",
+  "primary_source_url": "https://github.com/kushBitxHQ/kushbitx-sdk/issues/1",
+  "source_updated_at": "2026-09-23T08:43:16Z",
+  "source_body_sha256": "c85ca7521235adf162c4913d9e44cff91d580e91c98a26c244d64a9b39c4c9f2",
+  "source_newer_than_sensor_snapshot": true,
+  "source_sha256_before": "be42622c408e5555ac10f84edf81e0772ccdd5b8e590fd1782543d389b1ba83e",
+  "source_sha256_after": "c2e9eb8fe22e9e3dcf50cf1e05ebf8ac3929ef3d24c25b576b5ff9427b6b35a0",
+  "same_input_comparison_cases": 3243,
+  "comparison_note": "Latest recorded source revision per URL plus a freshly read revision for the leading candidate; the older sensor snapshot is not retroactively called wrong.",
+  "changes": [
+    {
+      "url": "https://github.com/Luminous-Dynamics/mycelix/issues/805",
+      "before": "DROP_LOW_SIGNAL",
+      "after": "HOLD_START_PROHIBITED"
+    },
+    {
+      "url": "https://github.com/kushBitxHQ/kushbitx-sdk/issues/1",
+      "before": "QUEUE_VERIFY",
+      "after": "HOLD_START_PROHIBITED"
+    }
+  ],
+  "unit_tests_passed": 52,
+  "checks": [
+    {
+      "check": "unittest",
+      "exit_code": 0,
+      "log_sha256": "712a0c4403a63dbffe849dc30045aa07130865008eda163e8e7d307c94fe264a"
+    },
+    {
+      "check": "compileall",
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "state_validate",
+      "exit_code": 0,
+      "log_sha256": "6dfa112bbe94b18338e4553bf155b57dcf4272066a27d9d4a5fbf5f6a3f78340"
+    },
+    {
+      "check": "diff_check",
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "production_state_changed": false,
+  "remote_ci": "not_yet_observed",
+  "payment_verified": false
+}
