@@ -2,7 +2,7 @@
   "engine": "VALUE_ENGINE_v2",
   "schema_version": 2,
   "mode": "shadow_until_route_verified",
-  "cycle": 227,
+  "cycle": 228,
   "phase": "IDLE",
   "lease": {
     "cycle_id": null,
@@ -19,7 +19,7 @@
     "cost_savings": []
   },
   "counters": {
-    "observed": 9455,
+    "observed": 9497,
     "verified": 2,
     "selected": 2,
     "produced": 2,
@@ -42,14 +42,27 @@
     "ledger_path": "bounty-engine/ledger.ndjson"
   },
   "last_cycle_result": {
-    "cycle_id": "cycle-227-37965573990",
-    "at": "2026-10-09T17:20:43Z",
-    "new_observations": 33,
+    "cycle_id": "cycle-228-37989815639",
+    "at": "2026-10-09T20:52:13Z",
+    "new_observations": 42,
     "refreshed_snapshots": 0,
     "direct_readback_attempts": 3,
-    "direct_readback_captures": 3,
+    "direct_readback_captures": 1,
     "direct_readback_closed": 0,
-    "source_errors": [],
+    "source_errors": [
+      {
+        "source": "github_direct_readback",
+        "url": "https://github.com/kushBitxHQ/kushbitx-sdk/issues/1",
+        "error": "HTTPError",
+        "http_status": 404
+      },
+      {
+        "source": "github_direct_readback",
+        "url": "https://github.com/woahwhattheheck/commons/issues/14250",
+        "error": "HTTPError",
+        "http_status": 404
+      }
+    ],
     "selected": 0,
     "delivered": 0,
     "paid": 0,
