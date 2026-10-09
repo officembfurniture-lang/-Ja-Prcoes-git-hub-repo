@@ -66,6 +66,16 @@ class OmegaShadowDriverTests(unittest.TestCase):
         self.assertEqual(result.evidence_delta, 0)
         self.assertTrue(result.action_verified)
 
+    def test_claimed_effect_with_only_known_evidence_is_hold_not_no_delta_or_promote(self):
+        record = self.record()
+        record["evidence"][0]["already_known"] = True
+        record["action"] = {}
+        result = evaluate(record)
+        self.assertTrue(result.material_effect_verified)
+        self.assertEqual(result.evidence_delta, 0)
+        self.assertFalse(result.action_verified)
+        self.assertEqual(result.verdict, "HOLD")
+
     def test_effect_requires_resolved_evidence_references(self):
         for refs in ([], ["missing"], ["e1", "missing"]):
             with self.subTest(refs=refs):
