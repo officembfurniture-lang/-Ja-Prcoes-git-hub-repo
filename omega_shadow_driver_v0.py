@@ -254,6 +254,15 @@ def _evaluate_valid(record: Dict[str, Any]) -> Verdict:
             "verify_action_readback_and_evidence_references",
         )
 
+    if evidence_delta == 0 and not action_verified and material_effect_verified:
+        return Verdict(
+            "HOLD",
+            "Claimed material effect has no new verified evidence or verified action; do not discard it or promote it.",
+            stable_hash(previous), 0, False,
+            True, material_effect_kind, burden_delta, debt_total,
+            "obtain_new_verified_evidence_or_action_for_effect",
+        )
+
     if evidence_delta == 0 and not action_verified:
         return Verdict(
             "NO_DELTA",
