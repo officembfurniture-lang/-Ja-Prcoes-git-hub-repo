@@ -18,7 +18,7 @@ jobs:
   evaluate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - id: mandate
         uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0004@b5c9f097beca043d8aacc2592b962589a599593d
         with:
@@ -58,16 +58,16 @@ jobs:
   analyze:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - id: flex
-        uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo@main
+        uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo@9401f04303d141e38052b54d370797d7ae4a2eae
         with:
           workload: examples/workload.json
           output: grid-flex-result.json
       - run: echo "Result ${{ steps.flex.outputs.result-hash }}"
 ```
 
-For reproducible use, replace `main` with an immutable commit SHA.
+The example is pinned to the immutable P-0003 package commit recorded in `value-circuit.json`; use a newer immutable SHA only after separately validating that revision.
 
 ## Evidence boundary
 
