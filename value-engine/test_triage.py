@@ -262,7 +262,67 @@ class ClassifyTests(unittest.TestCase):
         self.assertEqual(item["disposition"], "HOLD_PRIMARY_SOURCE")
 
 
+    def test_stale_snapshot_not_treated_as_a_fresh_buyer_offer(self):
+        # A fresh source-update timestamp does not refresh an old readback.
+        after = datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc)
+        stale = obs(
+            "[BOUNTY $250] Test API",
+            "Funded bounty. Acceptance criteria: passing tests. Submit a pull request.",
+            updated_at="2026-09-19T11:00:00Z",
+            detected_at="2026-09-11T12:00:00Z",
+        )
+        result = triage.classify(stale, after)
+        self.assertEqual(result["disposition"], "HOLD_STALE_OBSERVATION")
+        self.assertIn("observation_snapshot_stale_or_unknown", result["risks"])
+        self.assertFalse(result["primary_source_verified"])
+
+    def test_unknown_or_future_snapshot_cannot_enter_queue(self):
+        for detected in ("bad", None, "2026-09-12T12:00:00Z"):
+            with self.subTest(detected_at=detected):
+                candidate = obs(
+                    "[BOUNTY $250] Test API",
+                    "Funded bounty. Acceptance criteria: passing tests.",
+                    detected_at=detected,
+                )
+                result = triage.classify(candidate, REF)
+                self.assertEqual(result["disposition"], "HOLD_STALE_OBSERVATION")
+
+    def test_start_prohibition_retains_priority_over_snapshot_age(self):
+        candidate = obs(
+            "[BOUNTY $250] Old warning",
+            "Funded. Acceptance criteria: tests. Do not start work.",
+            detected_at="2026-08-15T10:00:00Z",
+        )
+        result = triage.classify(candidate, REF)
+        self.assertEqual(result["disposition"], "HOLD_START_PROHIBITED")
+
+
+
 class PipelineTests(unittest.TestCase):
+    def test_as_of_holds_old_snapshot_but_repeated_source_readback_requeues_it(self):
+        at = datetime(2026, 9, 20, 12, 0, tzinfo=timezone.utc)
+        prior = obs(
+            "[BOUNTY $250] Good",
+            "Funded. Acceptance criteria: tests. Submit a pull request.",
+            url="https://github.com/example/issues/9",
+            detected_at="2026-09-11T12:00:00Z",
+        )
+        refreshed = dict(prior, fingerprint="new-readback",
+                         detected_at="2026-09-20T11:59:00Z")
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            inp, queue, summary = (root / p for p in ("data.ndjson", "queue.ndjson", "summary.json"))
+            inp.write_text(json.dumps(prior) + "\n", encoding="utf-8")
+            old_result = triage.run(inp, queue, summary, 50, as_of=at)
+            self.assertEqual(old_result["verify_queue_total"], 0)
+            self.assertEqual(old_result["dispositions"]["HOLD_STALE_OBSERVATION"], 1)
+            self.assertEqual(old_result["reference_time_source"], "explicit_as_of")
+            inp.write_text(json.dumps(prior) + "\n" + json.dumps(refreshed) + "\n", encoding="utf-8")
+            new_result = triage.run(inp, queue, summary, 50, as_of=at)
+            self.assertEqual(new_result["verify_queue_total"], 1)
+            self.assertEqual(json.loads(queue.read_text())["fingerprint"], "new-readback")
+            self.assertFalse(json.loads(queue.read_text())["primary_source_verified"])
+
     def test_newer_start_prohibition_removes_stale_offer_from_queue(self):
         old = obs("$50 USDC bounty", "Acceptance criteria: tests. Payment is made after acceptance.")
         current = dict(old, fingerprint="closed-to-new-work", updated_at="2026-09-11T11:00:00Z",

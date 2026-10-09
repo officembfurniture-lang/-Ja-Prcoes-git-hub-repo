@@ -43,7 +43,8 @@ jobs:
             --observations observations.ndjson \
             --queue /tmp/value-engine-triage-queue.ndjson \
             --summary /tmp/value-engine-triage-summary.json \
-            --limit 50
+            --limit 50 \
+            --as-of "$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           cat /tmp/value-engine-triage-summary.json
       - name: Show top semantic VERIFY candidates
         run: |
@@ -72,6 +73,8 @@ jobs:
 
           summary = json.loads(Path('/tmp/value-engine-triage-summary.json').read_text())
           assert summary['stage'] == 'PRE_VERIFY_TRIAGE'
+          assert summary['reference_time_source'] == 'explicit_as_of'
+          assert summary['snapshot_max_age_days'] == 7
           assert summary['authoritative'] is False
           assert 0 <= summary['verify_queue_emitted'] <= 50
 
