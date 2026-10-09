@@ -213,3 +213,4 @@
 {"at": "2026-10-09T15:09:45Z", "cycle_id": "cycle-213-37949611976", "errors": [], "new_observations": 28, "realized_value": 0, "result": "SENSE_COMPLETE"}
 {"at": "2026-10-09T15:12:18Z", "cycle_id": "cycle-214-37949901853", "errors": [], "new_observations": 26, "realized_value": 0, "result": "SENSE_COMPLETE"}
 {"at": "2026-10-09T15:14:27Z", "cycle_id": "cycle-215-37950203365", "errors": [], "new_observations": 26, "realized_value": 0, "result": "SENSE_COMPLETE"}
+{"at": "2026-10-09T15:15:24Z", "cycle_id": "cycle-216-37950327876", "errors": [], "new_observations": 17, "realized_value": 0, "result": "SENSE_COMPLETE"}
