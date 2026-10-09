@@ -1,11 +1,17 @@
 # Repository Integrity Audit — 2026-10-09
 
-Status: **VALIDATED**  
+Status: **HISTORICAL VALIDATION SNAPSHOT — NOT A LIVE HEALTH ATTESTATION**  
 Scope: default branch, workflow topology, VALUE_ENGINE and BOUNTY_ENGINE state/ledgers, public probes P-0002 through P-0007, immutable distribution references, open PR/issues, and all repository branches compared with `main`.
 
 This report records repository evidence. It is not an external-use, economic-return, consciousness, autonomy, or independent-outcome claim.
 
-## Confirmed state
+## Snapshot boundary and current-state readback
+
+This document records evidence from the audit's original run. The claim that cycle 223 was current was accurate only at the earlier audit readback; it is **not** a live-cycle claim. A separate direct read of `value-engine/state.json` on 2026-10-09 observed `cycle = 227`, `counters.observed = 9455`, `counters.accepted = 2`, `counters.paid = 0`, `realized.cash = []`, and last sensor cycle `cycle-227-37965573990` at `2026-10-09T17:20:43Z`. These fields were read from the versioned repository file, **not independently revalidated against the run ledger or external settlement**. The cycle-223 ledger/observation reconciliation below is historical evidence and must not be projected onto cycle 227. No promotion or external outcome follows from the changed counter.
+
+A future audit must date-stamp its source commit and re-run the ledger reconciliation before asserting consistency at a newer cycle. This correction changes the report's epistemic status only: no engine state, protected gate, receipt, route, branch, or external action was changed.
+
+## Confirmed state (original audit snapshot)
 
 - VALUE_ENGINE cycle 223 completed on GitHub-hosted Actions with zero source errors.
 - The cycle ran 65 VALUE_ENGINE regression tests successfully before persistence.
