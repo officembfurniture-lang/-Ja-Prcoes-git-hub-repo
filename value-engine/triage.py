@@ -194,6 +194,15 @@ def classify(record: dict, reference_time: datetime) -> dict:
 
     if phrase(
         text,
+        "hire a contractor", "pay a contractor", "pay the agent",
+        "payment required to start", "billable api", "paid api key",
+        "invoice the requester", "reimbursement required",
+    ):
+        risks.append("potential_payment_liability")
+        score -= 20
+
+    if phrase(
+        text,
         "claim bond",
         "entry bond",
         "stake required",
@@ -232,7 +241,7 @@ def classify(record: dict, reference_time: datetime) -> dict:
         "grant_application_not_direct_offer", "seller_proposal_not_buyer_demand",
     )):
         disposition = "HOLD_PRIMARY_SOURCE"
-    elif "capital_required" in risks:
+    elif "capital_required" in risks or "potential_payment_liability" in risks:
         disposition = "HOLD_CAPITAL_REQUIRED"
     elif "human_gate_required" in risks:
         disposition = "HOLD_HUMAN_GATE"
