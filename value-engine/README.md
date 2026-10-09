@@ -79,6 +79,27 @@ Multiple search queries cannot duplicate a fingerprint within a single run.
 Every queue candidate still requires independent primary-source verification
 before any selection or work.
 
+## Bounded historical source readback
+
+Discovery searches return only ten results per query. An older issue can be
+absent from these results even while it remains open. For stored sources whose
+snapshot is already stale and whose conservative triage status would otherwise
+be `HOLD_STALE_OBSERVATION`, the sensor may attempt at most **three direct,
+read-only GitHub issue GETs per cycle**. These do not authorize outreach, a
+claim, a deliverable or money movement.
+
+Candidate URLs must match the public GitHub `/owner/repo/issues/number` form.
+The live issue ID, URL and state must match the stored source, or the request
+fails closed. A returned `closed` state is retained in the observation history
+but routed to `HOLD_SOURCE_CLOSED` in triage. Network failures do not extend
+freshness. Previously offered, unverified, prohibited or liability-gated work
+does not become executable because of a successful GET.
+
+The run ledger separates `direct_readback_attempts`, `direct_readback_captures`
+and `direct_readback_closed`. These are sensor measurements, not confirmed
+payment or adoption. The cap and deterministic ranking prevent unbounded
+retrieval, but do not guarantee that every archived issue is revisited.
+
 ## Concurrency and crash recovery
 
 Every active cycle holds a lease (`cycle_id`, owner, acquired/expires timestamps). A live lease causes a second scheduler to exit. Only an expired lease may be taken over. This allows redundant schedulers without duplicate work.
