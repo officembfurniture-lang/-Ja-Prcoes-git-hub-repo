@@ -95,6 +95,13 @@ but routed to `HOLD_SOURCE_CLOSED` in triage. Network failures do not extend
 freshness. Previously offered, unverified, prohibited or liability-gated work
 does not become executable because of a successful GET.
 
+Failures during bounded direct-readback attempts are retained in the
+canonical run ledger, including HTTP status codes when available. A previously
+failed issue URL receives a **24-hour retry cooldown**, so an inaccessible
+source cannot repeatedly consume the same three-request budget every cycle.
+A timeout, HTTP error or mismatched identity never renews observation freshness.
+The cooldown expires automatically and is not evidence that a source is closed.
+
 The run ledger separates `direct_readback_attempts`, `direct_readback_captures`
 and `direct_readback_closed`. These are sensor measurements, not confirmed
 payment or adoption. The cap and deterministic ranking prevent unbounded

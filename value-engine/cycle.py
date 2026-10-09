@@ -60,6 +60,7 @@ def parse_time(value: str | None) -> datetime | None:
 # A repeated GitHub GET is a new OBSERVED snapshot, not a new opportunity.
 SNAPSHOT_REFRESH_AFTER = timedelta(days=6)
 MAX_DIRECT_READBACKS = 3
+DIRECT_FAILURE_COOLDOWN = timedelta(hours=24)
 ISSUE_URL_RE = re.compile(r"https://github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)/issues/([1-9][0-9]*)\Z")
 
 
@@ -149,19 +150,48 @@ def github_issue_readback(url: str, token: str | None) -> dict:
         raise
 
 
+def recent_failed_direct_readbacks(current: datetime) -> set[str]:
+    """Durable 24h retry budget from canonical run-ledger error receipts."""
+    failed: set[str] = set()
+    if not RUNS.exists():
+        return failed
+    for line in RUNS.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+            stamp = parse_time(row.get("at"))
+            if stamp is None or stamp.utcoffset() is None:
+                continue
+            age = current - stamp.astimezone(timezone.utc)
+            if age < timedelta(0) or age >= DIRECT_FAILURE_COOLDOWN:
+                continue
+            for error in row.get("errors", []):
+                if isinstance(error, dict) and error.get("source") == "github_direct_readback":
+                    url = error.get("url")
+                    if isinstance(url, str) and ISSUE_URL_RE.fullmatch(url):
+                        failed.add(url)
+        except (ValueError, TypeError, AttributeError, json.JSONDecodeError, OverflowError):
+            continue
+    return failed
+
+
 def select_direct_readbacks(current: datetime, known: dict[str, datetime | None],
-                            search_seen_urls: set[str]) -> list[dict]:
+                            search_seen_urls: set[str],
+                            excluded_urls: set[str] | None = None) -> list[dict]:
     """Rank stale stored candidates for a fresh public issue readback only."""
     if not OBS.exists():
         return []
     from triage import classify, iter_records, newest_by_url
 
     candidates = []
+    excluded_urls = excluded_urls or set()
     for record in newest_by_url(iter_records(OBS)):
         url = record.get("url")
         if record.get("source") != "github_public_demand" or not isinstance(url, str):
             continue
-        if ISSUE_URL_RE.fullmatch(url) is None or url in search_seen_urls:
+        if (ISSUE_URL_RE.fullmatch(url) is None or url in search_seen_urls
+                or url in excluded_urls):
             continue
         fingerprint = record.get("fingerprint")
         if not isinstance(fingerprint, str):
@@ -269,7 +299,9 @@ def main() -> int:
 
     # Historical candidates not returned by recent searches: at most three
     # read-only GitHub GETs per cycle; no contact, claim, execution or payment.
-    for candidate in select_direct_readbacks(current, known, search_seen_urls):
+    cooldown_urls = recent_failed_direct_readbacks(current)
+    for candidate in select_direct_readbacks(current, known, search_seen_urls,
+                                              cooldown_urls):
         if direct_attempts >= MAX_DIRECT_READBACKS:
             break
         direct_attempts += 1
@@ -300,7 +332,8 @@ def main() -> int:
         except Exception as exc:
             # HTTP failures and mismatched identities never refresh an observation.
             errors.append({"source": "github_direct_readback", "url": url,
-                           "error": type(exc).__name__})
+                           "error": type(exc).__name__,
+                           "http_status": exc.code if isinstance(exc, urllib.error.HTTPError) else None})
 
     append_ndjson(OBS, new_records + refreshed_records)
     counters = state.setdefault("counters", {})
