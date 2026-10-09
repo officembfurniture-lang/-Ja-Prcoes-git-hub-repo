@@ -24,6 +24,7 @@ class HealthReportTests(unittest.TestCase):
             report = health_report.build(root)
             self.assertEqual(report["accepted_without_verified_payment"], 2)
             self.assertEqual(report["cash_receipt_count"], 0)
+            self.assertIn("unsettled_acceptances", report["diagnostic_alerts"])
             self.assertIsNone(report["external_cash_amount"])
             self.assertEqual(path.read_text(encoding="utf-8"), original)
 
@@ -38,6 +39,7 @@ class HealthReportTests(unittest.TestCase):
             }), encoding="utf-8")
             report = health_report.build(root)
             self.assertEqual(report["accepted_without_verified_payment"], 1)
+            self.assertIn("unsettled_acceptances", report["diagnostic_alerts"])
             self.assertIsNone(report["external_cash_amount"])
 
 
