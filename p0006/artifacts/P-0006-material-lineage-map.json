@@ -1,8 +1,8 @@
 {
-  "candidate_mass_kg": 264.0,
+  "candidate_mass_kg": 222,
   "candidate_matches": [
     {
-      "candidate_mass_kg": 42.0,
+      "candidate_mass_kg": 42,
       "coordination_score": 0.9,
       "demand_id": "DEM-SOLID-REUSE-002",
       "material_code": "WOOD-OAK-SOLID",
@@ -14,7 +14,7 @@
       "source_id": "SRC-OFFCUT-002"
     },
     {
-      "candidate_mass_kg": 42.0,
+      "candidate_mass_kg": 42,
       "coordination_score": 0.8,
       "demand_id": "DEM-PACKAGING-001",
       "material_code": "WOOD-OAK-SOLID",
@@ -25,7 +25,7 @@
       "source_id": "SRC-OFFCUT-002"
     },
     {
-      "candidate_mass_kg": 180.0,
+      "candidate_mass_kg": 180,
       "coordination_score": 0.8,
       "demand_id": "DEM-PACKAGING-001",
       "material_code": "WOOD-MDF-E1",
@@ -47,5 +47,6 @@
   "unmatched_demand_ids": [],
   "unmatched_source_ids": [
     "SRC-COATED-003"
-  ]
+  ],
+  "candidate_pair_mass_kg": 264
 }
