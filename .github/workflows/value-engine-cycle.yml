@@ -7,7 +7,11 @@ on:
   push:
     branches: [main]
     paths:
-      - 'value-engine/**'
+      # Ignore generated cycle output: it must not trigger another sensor cycle.
+      - 'value-engine/cycle.py'
+      - 'value-engine/sources.json'
+      - 'value-engine/policy.json'
+      - 'value-engine/routes.json'
       - '.github/workflows/value-engine-cycle.yml'
 
 permissions:
@@ -21,6 +25,8 @@ jobs:
   sense:
     if: github.event_name != 'push' || !contains(github.event.head_commit.message, '[value-engine-cycle]')
     runs-on: ubuntu-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
@@ -40,12 +46,34 @@ jobs:
         run: python3 value-engine/feedback.py
       - name: Persist state and observations
         run: |
-          if git diff --quiet -- value-engine/; then
-            echo 'No VALUE_ENGINE state change.'
+          # Never stage tests, caches, advisory output or unrelated files.
+          state_paths=(value-engine/state.json value-engine/observations.ndjson value-engine/run-ledger.ndjson)
+          git add -- "${state_paths[@]}"
+          if git diff --cached --quiet; then
+            echo 'No persisted sensor state change.'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add value-engine/
+          base="$(git rev-parse HEAD)"
           git commit -m '[value-engine-cycle] persist sensor result'
-          git push
+          # Retain the same sensor result across retries. Rebase only if remote
+          # changed unrelated paths. Never auto-merge conflicting state/ledger.
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            git fetch origin main
+            if ! git diff --quiet "$base" origin/main -- "${state_paths[@]}"; then
+              echo "::error::Concurrent sensor state changed on main; abandoning stale write, not overwriting ledger."
+              exit 1
+            fi
+            if ! git rebase origin/main; then
+              git rebase --abort || true
+              echo "::error::Cannot safely rebase sensor result."
+              exit 1
+            fi
+            base="$(git rev-parse HEAD^)"
+          done
+          echo "::error::Unable to persist sensor result after bounded retries."
+          exit 1
