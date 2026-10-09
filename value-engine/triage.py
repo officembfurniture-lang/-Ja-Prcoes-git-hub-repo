@@ -33,6 +33,21 @@ UNFUNDED_RE = re.compile(
     r"\b(?:unfunded|(?:not|no|never)\s+(?:yet\s+)?(?:funded|escrowed)|"
     r"funding\s+(?:is\s+)?(?:not\s+confirmed|unconfirmed))\b"
 )
+# Strong negative signals from the *offer itself*, not from URL/search keywords.
+# A seller seeking a commission is not a buyer offering an open paid task.
+ZERO_REWARD_RE = re.compile(
+    r"\bzero[- ]bounty\b|\breward\s+is\s+\$\s*0(?:\.00)?(?!\d)",
+    re.IGNORECASE,
+)
+SELLER_PROPOSAL_MARKERS = (
+    "proposal for you to hire me",
+    "not a task for other contributors",
+    "not offering a reward",
+    "offer to provide paid engineering work",
+    "what i would charge",
+    "paid pilot inquiry",
+)
+
 WALLET_DEPENDENCY_RE = re.compile(
     r"\b(?:requires?|needs?)\s+(?:an?\s+)?(?:authorized\s+)?funded\s+"
     r"[^.\n]{0,60}\bwallet\b|"
@@ -92,7 +107,9 @@ def classify(record: dict, reference_time: datetime) -> dict:
         score += 2
         reasons.append("explicit_demand_signal")
 
-    explicitly_unfunded = bool(UNFUNDED_RE.search(text))
+    zero_reward = bool(ZERO_REWARD_RE.search(text))
+    seller_proposal = phrase(text, *SELLER_PROPOSAL_MARKERS)
+    explicitly_unfunded = bool(UNFUNDED_RE.search(text)) or zero_reward
     if FUNDING_RE.search(text) and not explicitly_unfunded:
         score += 4
         reasons.append("funding_language_present")
@@ -127,6 +144,13 @@ def classify(record: dict, reference_time: datetime) -> dict:
             score -= 3
     else:
         risks.append("freshness_unknown")
+
+    if zero_reward:
+        risks.append("explicit_zero_reward")
+
+    if seller_proposal:
+        risks.append("seller_proposal_not_buyer_demand")
+        score -= 12
 
     if explicitly_unfunded or phrase(
         text,
@@ -204,7 +228,8 @@ def classify(record: dict, reference_time: datetime) -> dict:
     if "explicit_start_prohibition" in risks:
         disposition = "HOLD_START_PROHIBITED"
     elif any(risk in risks for risk in (
-        "mirror_or_radar_source", "discovery_report_not_direct_offer", "grant_application_not_direct_offer"
+        "mirror_or_radar_source", "discovery_report_not_direct_offer",
+        "grant_application_not_direct_offer", "seller_proposal_not_buyer_demand",
     )):
         disposition = "HOLD_PRIMARY_SOURCE"
     elif "capital_required" in risks:
