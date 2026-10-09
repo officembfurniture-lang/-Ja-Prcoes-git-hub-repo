@@ -73,38 +73,56 @@ jobs:
           import json
           from pathlib import Path
 
-          roots = [Path('.')]
+          def parse_strict(text, label):
+              def reject_constant(value):
+                  raise ValueError(f'{label}: non-finite JSON constant {value}')
+              return json.loads(text, parse_constant=reject_constant)
+
           json_files = sorted(p for p in Path('.').rglob('*.json') if '.git' not in p.parts)
           ndjson_files = sorted(p for p in Path('.').rglob('*.ndjson') if '.git' not in p.parts)
           for path in json_files:
-              with path.open('r', encoding='utf-8') as f:
-                  json.load(f)
+              try:
+                  parse_strict(path.read_text(encoding='utf-8'), str(path))
+              except (json.JSONDecodeError, ValueError) as exc:
+                  raise SystemExit(str(exc))
           for path in ndjson_files:
               with path.open('r', encoding='utf-8') as f:
                   for line_no, line in enumerate(f, 1):
                       if line.strip():
                           try:
-                              json.loads(line)
-                          except json.JSONDecodeError as exc:
-                              raise SystemExit(f'{path}:{line_no}: {exc}')
+                              parse_strict(line, f'{path}:{line_no}')
+                          except (json.JSONDecodeError, ValueError) as exc:
+                              raise SystemExit(str(exc))
           print(f'JSON_OK json={len(json_files)} ndjson={len(ndjson_files)}')
           PY
 
-      - name: Compile Python sources without writing bytecode
+      - name: Compile Python sources in memory
         shell: bash
         run: |
           python3 - <<'PY'
-          import compileall
-          import sys
           from pathlib import Path
 
           roots = [
               Path('src'), Path('p0002'), Path('p0004'), Path('p0005'),
               Path('p0006'), Path('p0007'), Path('value-engine'), Path('bounty-engine'),
+              Path('tests'),
           ]
-          failed = [str(root) for root in roots if root.exists() and not compileall.compile_dir(root, quiet=1, force=True)]
-          if failed:
-              raise SystemExit('compile failures: ' + ', '.join(failed))
+          failures = []
+          checked = 0
+          for root in roots:
+              if not root.exists():
+                  continue
+              for path in sorted(root.rglob('*.py')):
+                  if '__pycache__' in path.parts:
+                      continue
+                  checked += 1
+                  try:
+                      compile(path.read_text(encoding='utf-8'), str(path), 'exec')
+                  except (SyntaxError, UnicodeError) as exc:
+                      failures.append(f'{path}: {exc}')
+          if failures:
+              raise SystemExit('\n'.join(failures))
+          print(f'PYTHON_SYNTAX_OK files={checked}')
           PY
 
       - name: Validate engines and VALUE_ENGINE regression suite
@@ -114,6 +132,7 @@ jobs:
           python3 bounty-engine/validate_state.py
           python3 value-engine/validate.py
           python3 -m unittest discover -s value-engine -p 'test_*.py' -v
+          python3 -m unittest discover -s tests -p 'test_*.py' -v
 
       - id: p0003
         name: P-0003 root action self-test
