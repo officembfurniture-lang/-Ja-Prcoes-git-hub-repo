@@ -36,7 +36,7 @@ UNFUNDED_RE = re.compile(
 # Strong negative signals from the *offer itself*, not from URL/search keywords.
 # A seller seeking a commission is not a buyer offering an open paid task.
 ZERO_REWARD_RE = re.compile(
-    r"\\bzero[- ]bounty\\b|\\breward\\s+is\\s+\\$\\s*0(?:\\.00)?(?!\\d)",
+    r"\bzero[- ]bounty\b|\breward\s+is\s+\$\s*0(?:\.00)?(?!\d)",
     re.IGNORECASE,
 )
 SELLER_PROPOSAL_MARKERS = (
