@@ -27,9 +27,15 @@
     "acceptance_criteria_known": true,
     "delivery_route_verified_before_production": true,
     "settlement_route_verified_before_production": true,
-    "safety_and_legality_pass": true
+    "safety_and_legality_pass": true,
+    "no_unapproved_paid_work": true,
+    "no_unapproved_third_party_engagement": true
   },
   "execution_rules": [
+    "Never commission, induce or authorize third-party work that may entail payment, reimbursement, deferred fees or contingent compensation without fresh, specific user approval; historical autonomy consent is insufficient.",
+    "Before SELECT, ACQUIRE, PRODUCE or DELIVER, classify possible monetary liability and third-party engagement; when unclear or unauthorized, stop with PAYMENT_GATE_BLOCKED and use a genuinely no-cost route or SELECT_NONE.",
+    "Do not incur billable API, compute, hosting, subscription or transaction charges beyond already-included capacity without specific user approval; do not treat an advertised bounty payable TO the user as a charge payable BY the user.",
+    "Never represent an unverified invoice or demand as an existing debt, and do not claim this policy cancels pre-existing obligations.",
     "Never equate advertised value with realized value.",
     "Never select an opportunity solely because it has a bounty/reward label.",
     "Never perform core work when delivery or settlement has no executable route.",
@@ -55,6 +61,7 @@
     "ABANDONED",
     "DELIVERED",
     "ACCEPTED",
-    "PAID"
+    "PAID",
+    "PAYMENT_GATE_BLOCKED"
   ]
 }
