@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - id: protocol
-        uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0005@62feb7ce4190989634b5f0da37f4bc4cc82a18ed
+        uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0005@df630212a355460f821341df3d4bf6d5f85dd4ef
         with:
           draft: measurement-draft.json
           output: measurement-protocol.json
