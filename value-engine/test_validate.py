@@ -15,9 +15,12 @@ HERE = Path(__file__).resolve().parent
 SPEC = importlib.util.spec_from_file_location("engine_validator_under_test", HERE / "validate.py")
 validator = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(validator)
-# Test every production gate, including newly added liability/engagement controls.
-# Duplicating a historical subset here makes valid fixtures fail when policy grows.
-GATES = validator.REQUIRED_GATES
+GATES = (
+    "primary_source_verified", "demand_or_reward_verified", "acceptance_criteria_known",
+    "delivery_route_verified_before_production", "settlement_route_verified_before_production",
+    "safety_and_legality_pass", "no_unapproved_paid_work",
+    "no_unapproved_third_party_engagement",
+)
 PHASES = ("PRODUCE", "VALIDATE", "DELIVER", "OBSERVE", "SETTLE")
 
 
@@ -92,6 +95,14 @@ class ValidationTests(unittest.TestCase):
             with self.subTest(phase=phase):
                 self.production(phase)
                 self.assertEqual(self.check(), 0)
+
+    def test_payment_safety_gates(self):
+        for gate in ("no_unapproved_paid_work", "no_unapproved_third_party_engagement"):
+            for value in (None, False, "true"):
+                with self.subTest(gate=gate, value=value):
+                    self.production()
+                    self.state["active_opportunity"][gate] = value
+                    self.reject()
 
     def test_production_requires_an_active_opportunity(self):
         for phase in PHASES:
