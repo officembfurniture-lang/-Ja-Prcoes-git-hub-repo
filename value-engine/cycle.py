@@ -239,6 +239,10 @@ def main() -> int:
     new_records: list[dict] = []
     refreshed_records: list[dict] = []
     errors: list[dict] = []
+    search_seen_urls: set[str] = set()
+    direct_attempts = 0
+    direct_captures = 0
+    direct_closed = 0
 
     for source in source_cfg.get("sources", []):
         if not source.get("enabled") or source.get("adapter") != "github_issue_search":
@@ -247,6 +251,7 @@ def main() -> int:
             try:
                 for item in github_search(query, token):
                     record = normalize(item, query, current_iso)
+                    search_seen_urls.add(str(record.get("url") or ""))
                     fingerprint = record["fingerprint"]
                     if fingerprint not in known:
                         new_records.append(record)
@@ -262,6 +267,41 @@ def main() -> int:
             except Exception as exc:  # record failure; do not fabricate observations
                 errors.append({"source": source.get("id"), "query": query, "error": type(exc).__name__})
 
+    # Historical candidates not returned by recent searches: at most three
+    # read-only GitHub GETs per cycle; no contact, claim, execution or payment.
+    for candidate in select_direct_readbacks(current, known, search_seen_urls):
+        if direct_attempts >= MAX_DIRECT_READBACKS:
+            break
+        direct_attempts += 1
+        url = candidate["url"]
+        try:
+            live = github_issue_readback(url, token)
+            if (live.get("html_url") != url
+                    or (candidate.get("external_id") is not None
+                        and live.get("id") != candidate["external_id"])
+                    or live.get("state") not in ("open", "closed")
+                    or "pull_request" in live):
+                raise ValueError("source_identity_or_state_mismatch")
+            record = normalize(live, candidate.get("signal_query") or "direct_readback", current_iso)
+            fingerprint = record["fingerprint"]
+            if fingerprint not in known:
+                new_records.append(record)
+            else:
+                last_readback = known[fingerprint]
+                if (last_readback is None or last_readback > current
+                        or current - last_readback >= SNAPSHOT_REFRESH_AFTER):
+                    refreshed_records.append(record)
+                else:
+                    continue
+            known[fingerprint] = current
+            direct_captures += 1
+            if live["state"] == "closed":
+                direct_closed += 1
+        except Exception as exc:
+            # HTTP failures and mismatched identities never refresh an observation.
+            errors.append({"source": "github_direct_readback", "url": url,
+                           "error": type(exc).__name__})
+
     append_ndjson(OBS, new_records + refreshed_records)
     counters = state.setdefault("counters", {})
     counters["observed"] = int(counters.get("observed", 0)) + len(new_records) + len(refreshed_records)
@@ -273,6 +313,9 @@ def main() -> int:
         "at": current_iso,
         "new_observations": len(new_records),
         "refreshed_snapshots": len(refreshed_records),
+        "direct_readback_attempts": direct_attempts,
+        "direct_readback_captures": direct_captures,
+        "direct_readback_closed": direct_closed,
         "source_errors": errors,
         "selected": 0,
         "delivered": 0,
@@ -286,6 +329,9 @@ def main() -> int:
         "result": "SENSE_COMPLETE",
         "new_observations": len(new_records),
         "refreshed_snapshots": len(refreshed_records),
+        "direct_readback_attempts": direct_attempts,
+        "direct_readback_captures": direct_captures,
+        "direct_readback_closed": direct_closed,
         "errors": errors,
         "realized_value": 0,
     }])
