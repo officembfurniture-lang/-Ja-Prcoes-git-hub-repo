@@ -55,17 +55,40 @@ def parse_time(value: str | None) -> datetime | None:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
-def existing_fingerprints() -> set[str]:
+# Re-read an unchanged source revision before triage's seven-day snapshot gate.
+# A repeated GitHub GET is a new OBSERVED snapshot, not a new opportunity.
+SNAPSHOT_REFRESH_AFTER = timedelta(days=6)
+
+
+def existing_snapshots() -> dict[str, datetime | None]:
+    """Last captured readback per source revision, preserving append-only history."""
     if not OBS.exists():
-        return set()
-    out: set[str] = set()
+        return {}
+    latest: dict[str, datetime | None] = {}
     for line in OBS.read_text(encoding="utf-8").splitlines():
-        if line.strip():
-            try:
-                out.add(json.loads(line)["fingerprint"])
-            except (KeyError, json.JSONDecodeError):
-                pass
-    return out
+        if not line.strip():
+            continue
+        try:
+            record = json.loads(line)
+            fingerprint = record["fingerprint"]
+        except (TypeError, KeyError, json.JSONDecodeError):
+            continue
+        if not isinstance(fingerprint, str) or not fingerprint:
+            continue
+        try:
+            detected = parse_time(record.get("detected_at"))
+            if detected is None or detected.utcoffset() is None:
+                detected = None
+            else:
+                detected = detected.astimezone(timezone.utc)
+        except (TypeError, ValueError, OverflowError, AttributeError):
+            detected = None
+        old = latest.get(fingerprint)
+        if fingerprint not in latest or (
+            detected is not None and (old is None or detected > old)
+        ):
+            latest[fingerprint] = detected
+    return latest
 
 
 def github_search(query: str, token: str | None) -> list[dict]:
@@ -149,8 +172,9 @@ def main() -> int:
     write_json(STATE, state)
 
     token = os.getenv("GITHUB_TOKEN")
-    known = existing_fingerprints()
+    known = existing_snapshots()
     new_records: list[dict] = []
+    refreshed_records: list[dict] = []
     errors: list[dict] = []
 
     for source in source_cfg.get("sources", []):
@@ -160,15 +184,24 @@ def main() -> int:
             try:
                 for item in github_search(query, token):
                     record = normalize(item, query, current_iso)
-                    if record["fingerprint"] not in known:
-                        known.add(record["fingerprint"])
+                    fingerprint = record["fingerprint"]
+                    if fingerprint not in known:
                         new_records.append(record)
+                    else:
+                        last_readback = known[fingerprint]
+                        if (last_readback is None or last_readback > current
+                                or current - last_readback >= SNAPSHOT_REFRESH_AFTER):
+                            refreshed_records.append(record)
+                        else:
+                            continue
+                    # Deduplicate across overlapping search queries in this run.
+                    known[fingerprint] = current
             except Exception as exc:  # record failure; do not fabricate observations
                 errors.append({"source": source.get("id"), "query": query, "error": type(exc).__name__})
 
-    append_ndjson(OBS, new_records)
+    append_ndjson(OBS, new_records + refreshed_records)
     counters = state.setdefault("counters", {})
-    counters["observed"] = int(counters.get("observed", 0)) + len(new_records)
+    counters["observed"] = int(counters.get("observed", 0)) + len(new_records) + len(refreshed_records)
     state["phase"] = "IDLE"
     state["lease"] = {"cycle_id": None, "owner": None, "acquired_at": None, "expires_at": None}
     state["last_transition"] = "SENSE -> IDLE"
@@ -176,6 +209,7 @@ def main() -> int:
         "cycle_id": cycle_id,
         "at": current_iso,
         "new_observations": len(new_records),
+        "refreshed_snapshots": len(refreshed_records),
         "source_errors": errors,
         "selected": 0,
         "delivered": 0,
@@ -188,10 +222,12 @@ def main() -> int:
         "cycle_id": cycle_id,
         "result": "SENSE_COMPLETE",
         "new_observations": len(new_records),
+        "refreshed_snapshots": len(refreshed_records),
         "errors": errors,
         "realized_value": 0,
     }])
-    print(f"VALUE_ENGINE {cycle_id}: {len(new_records)} new observations, {len(errors)} source errors")
+    print(f"VALUE_ENGINE {cycle_id}: {len(new_records)} new revisions, "
+          f"{len(refreshed_records)} refreshed snapshots, {len(errors)} source errors")
     return 0
 
 
