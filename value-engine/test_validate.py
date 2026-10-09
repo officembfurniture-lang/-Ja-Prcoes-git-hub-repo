@@ -15,11 +15,9 @@ HERE = Path(__file__).resolve().parent
 SPEC = importlib.util.spec_from_file_location("engine_validator_under_test", HERE / "validate.py")
 validator = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(validator)
-GATES = (
-    "primary_source_verified", "demand_or_reward_verified", "acceptance_criteria_known",
-    "delivery_route_verified_before_production", "settlement_route_verified_before_production",
-    "safety_and_legality_pass",
-)
+# Test every production gate, including newly added liability/engagement controls.
+# Duplicating a historical subset here makes valid fixtures fail when policy grows.
+GATES = validator.REQUIRED_GATES
 PHASES = ("PRODUCE", "VALIDATE", "DELIVER", "OBSERVE", "SETTLE")
 
 
