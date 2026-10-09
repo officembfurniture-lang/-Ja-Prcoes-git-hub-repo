@@ -73,7 +73,7 @@ The tested GitHub connector can branch, commit, open non-draft PRs, comment and 
 ## Enforced state and receipt contract
 
 `validate.py` rejects `PRODUCE`, `VALIDATE`, `DELIVER`, `OBSERVE` and `SETTLE`
-without a non-empty `active_opportunity.id`, a complete lease, and all six
+without a non-empty `active_opportunity.id`, a complete lease, and all eight
 `policy.hard_gates` repeated as literal `true` on that opportunity. Policy flags
 describe requirements; they are not proof that a particular opportunity passed.
 The lease must have a named owner/cycle and timezone-aware acquisition/expiry
@@ -100,3 +100,11 @@ authenticate receipts, prove control of a payout destination, or establish a
 balance. The semantic worker must perform those independent checks before
 recording verification or payment. No current opportunity, observation, award,
 route permission, or realized-value bucket is changed by running the validator.
+
+## Zero-unapproved-liability boundary
+
+External reward opportunities may be researched without creating liabilities. No worker may commission paid third-party labor, accept fees, authorize billable API/compute usage, or infer financial consent from general autonomy permissions. Before SELECT, ACQUIRE, PRODUCE or DELIVER, the worker must assess possible costs and third-party obligations. Missing or ambiguous evidence means `PAYMENT_GATE_BLOCKED` and no external engagement. The two opportunity-level gates `no_unapproved_paid_work` and `no_unapproved_third_party_engagement` must be supported by independent evidence; `true` flags alone are not evidence of consent or no-cost execution. An externally advertised bounty payable to the contributor is not a bill payable by the beneficiary. This boundary does not cancel pre-existing agreements or prevent unrelated account subscription charges. Provider billing limits and credentials must be configured independently.
+
+## Integrity and promotion
+
+A successful file commit is not a successful CI run. Production promotion requires independent tests for the exact revision, plus any issue-specific held-out or live validation gates. The deterministic omega shadow driver remains HOLD until its paired trial and correction-burden evidence pass; documentation and financial-policy updates do not waive that requirement.
