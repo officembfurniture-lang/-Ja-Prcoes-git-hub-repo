@@ -1,0 +1,213 @@
+name: Repository Integrity
+
+on:
+  pull_request:
+    paths:
+      - 'action.yml'
+      - 'src/**'
+      - 'examples/**'
+      - 'p0002/**'
+      - 'p0004/**'
+      - 'p0005/**'
+      - 'p0006/**'
+      - 'p0007/**'
+      - 'bounty-engine/**'
+      - 'value-engine/*.py'
+      - 'value-engine/policy.json'
+      - 'value-engine/routes.json'
+      - 'value-engine/sources.json'
+      - 'value-engine/outcomes.ndjson'
+      - '.github/workflows/**'
+      - 'README.md'
+  push:
+    branches: [main]
+    paths:
+      - 'action.yml'
+      - 'src/**'
+      - 'examples/**'
+      - 'p0002/**'
+      - 'p0004/**'
+      - 'p0005/**'
+      - 'p0006/**'
+      - 'p0007/**'
+      - 'bounty-engine/**'
+      - 'value-engine/*.py'
+      - 'value-engine/policy.json'
+      - 'value-engine/routes.json'
+      - 'value-engine/sources.json'
+      - 'value-engine/outcomes.ndjson'
+      - '.github/workflows/**'
+      - 'README.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repository-integrity-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reject tracked runtime cache artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          bad="$(git ls-files | grep -E '(^|/)(__pycache__/|[^/]+\.py[co]$)' || true)"
+          if [ -n "$bad" ]; then
+            printf 'Tracked runtime cache files are forbidden:\n%s\n' "$bad"
+            exit 1
+          fi
+
+      - name: Parse repository JSON and NDJSON
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          roots = [Path('.')]
+          json_files = sorted(p for p in Path('.').rglob('*.json') if '.git' not in p.parts)
+          ndjson_files = sorted(p for p in Path('.').rglob('*.ndjson') if '.git' not in p.parts)
+          for path in json_files:
+              with path.open('r', encoding='utf-8') as f:
+                  json.load(f)
+          for path in ndjson_files:
+              with path.open('r', encoding='utf-8') as f:
+                  for line_no, line in enumerate(f, 1):
+                      if line.strip():
+                          try:
+                              json.loads(line)
+                          except json.JSONDecodeError as exc:
+                              raise SystemExit(f'{path}:{line_no}: {exc}')
+          print(f'JSON_OK json={len(json_files)} ndjson={len(ndjson_files)}')
+          PY
+
+      - name: Compile Python sources without writing bytecode
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import compileall
+          import sys
+          from pathlib import Path
+
+          roots = [
+              Path('src'), Path('p0002'), Path('p0004'), Path('p0005'),
+              Path('p0006'), Path('p0007'), Path('value-engine'), Path('bounty-engine'),
+          ]
+          failed = [str(root) for root in roots if root.exists() and not compileall.compile_dir(root, quiet=1, force=True)]
+          if failed:
+              raise SystemExit('compile failures: ' + ', '.join(failed))
+          PY
+
+      - name: Validate engines and VALUE_ENGINE regression suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 bounty-engine/validate_state.py
+          python3 value-engine/validate.py
+          python3 -m unittest discover -s value-engine -p 'test_*.py' -v
+
+      - id: p0003
+        name: P-0003 root action self-test
+        uses: ./
+        with:
+          workload: examples/workload.json
+          output: /tmp/p0003-result.json
+
+      - id: p0002
+        name: P-0002 Agent Operations Passport self-test
+        uses: ./p0002
+        with:
+          root: .
+          output: /tmp/p0002-passport.json
+          upload-artifact: 'false'
+
+      - name: Prepare bounded P-0004 draft
+        shell: bash
+        run: |
+          cat > /tmp/p0004-draft.json <<'JSON'
+          {
+            "issuer": "repository-integrity-self-test",
+            "task": "Verify deterministic mandate freezing only",
+            "authority": "A1",
+            "budget": {"amount": 0, "currency": "TEST"},
+            "criteria": [{"metric": "integrity_ok", "operator": "==", "target": true}],
+            "evidence_policy": {"allowed_schemes": ["https", "dataset"]},
+            "kill_gate": "Stop on any validation failure",
+            "expires_at": "2099-01-01T00:00:00Z"
+          }
+          JSON
+
+      - id: p0004
+        name: P-0004 Outcome Mandate self-test
+        uses: ./p0004
+        with:
+          draft: /tmp/p0004-draft.json
+          output: /tmp/p0004-mandate.json
+
+      - id: p0005
+        name: P-0005 Measurement Compiler self-test
+        uses: ./p0005
+        with:
+          draft: p0005/examples/measurement-draft.json
+          output: /tmp/p0005-protocol.json
+
+      - id: p0006
+        name: P-0006 Material Lineage self-test
+        uses: ./p0006
+        with:
+          dataset: p0006/examples/material-lineage.example.json
+          output: /tmp/p0006-map.json
+
+      - id: p0007
+        name: P-0007 Early Action Backtest self-test
+        uses: ./p0007
+        with:
+          dataset: p0007/examples/early-action.example.json
+          output: /tmp/p0007-backtest.json
+
+      - name: Enforce portfolio truth boundaries
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          checks = {
+              '/tmp/p0002-passport.json': ('horyzont.agent-operations-passport/v0.1', ['legal_compliance_determined', 'file_contents_exported']),
+              '/tmp/p0004-mandate.json': ('horyzont.outcome-mandate/v0.1', ['content_hash_is_signature', 'payment_authorized']),
+              '/tmp/p0006-map.json': ('horyzont.material-lineage-opportunity-map/v0.1', ['physical_transfer_occurred', 'ownership_transfer_authorized', 'financial_savings_established', 'dpp_compliance_established']),
+              '/tmp/p0007-backtest.json': ('horyzont.early-action-backtest/v0.1', ['real_warning_issued', 'real_action_taken', 'real_avoided_loss_established']),
+          }
+          for filename, (schema, false_fields) in checks.items():
+              data = json.loads(Path(filename).read_text(encoding='utf-8'))
+              assert data.get('schema') == schema, (filename, data.get('schema'))
+              boundary = data.get('truth_boundary', {})
+              for field in false_fields:
+                  assert boundary.get(field) is False, (filename, field, boundary.get(field))
+
+          p0003 = json.loads(Path('/tmp/p0003-result.json').read_text(encoding='utf-8'))
+          assert p0003['truth_boundary']['physical_savings_claimed'] is False
+
+          p0005 = json.loads(Path('/tmp/p0005-protocol.json').read_text(encoding='utf-8'))
+          assert len(p0005.get('protocol_hash', '')) == 64
+          assert p0005['review']['required_before_execution'] is False
+          print('PORTFOLIO_TRUTH_BOUNDARIES_OK')
+          PY
+
+      - name: Ensure self-tests did not mutate repository
+        shell: bash
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git status --short
+            echo 'Repository self-tests must be read-only.'
+            exit 1
+          fi
