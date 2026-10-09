@@ -19,6 +19,7 @@ on:
       - 'value-engine/outcomes.ndjson'
       - '.github/workflows/**'
       - 'README.md'
+      - 'REPOSITORY_INTEGRITY_AUDIT.md'
   push:
     branches: [main]
     paths:
@@ -38,6 +39,7 @@ on:
       - 'value-engine/outcomes.ndjson'
       - '.github/workflows/**'
       - 'README.md'
+      - 'REPOSITORY_INTEGRITY_AUDIT.md'
   workflow_dispatch:
 
 permissions:
