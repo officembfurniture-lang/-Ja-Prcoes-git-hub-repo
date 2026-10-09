@@ -149,6 +149,39 @@ class ClassifyTests(unittest.TestCase):
         self.assertEqual(item["disposition"], "HOLD_REWARD_UNCONFIRMED")
         self.assertIn("reward_not_yet_confirmed", item["risks"])
 
+    def test_explicit_zero_bounty_is_not_queued_as_paid_work(self):
+        # Source: MisakaNet zero-bounty lesson issues, including #2874.
+        item = triage.classify(obs(
+            "[Bounty] Answer 3 linked questions as a lesson",
+            "This is a `zero-bounty` task: $0. The reward is merge credit. "
+            "Acceptance criteria: include checkable tests. Submit a pull request.",
+        ), REF)
+        self.assertEqual(item["disposition"], "HOLD_REWARD_UNCONFIRMED")
+        self.assertIn("explicit_zero_reward", item["risks"])
+        self.assertFalse(item["demand_or_reward_verified"])
+
+    def test_seller_pilot_is_not_a_buyer_reward_offer(self):
+        # Source class: basedagents #165, paid pilot proposed BY a service seller.
+        item = triage.classify(obs(
+            "Paid pilot inquiry: owner task-acceptance regression tests (US$250 proposed)",
+            "This is a proposal for you to hire me. Not a task for other contributors. "
+            "Proposed fee $250, AI-assisted. Acceptance criteria would be agreed "
+            "and payout would be negotiated with the maintainer.",
+        ), REF)
+        self.assertEqual(item["disposition"], "HOLD_PRIMARY_SOURCE")
+        self.assertIn("seller_proposal_not_buyer_demand", item["risks"])
+        self.assertFalse(item["primary_source_verified"])
+
+    def test_genuinely_funded_positive_reward_keeps_verify_route(self):
+        item = triage.classify(obs(
+            "[BOUNTY $100] Fix broken CI test",
+            "Funded reward. Acceptance criteria: passing tests. "
+            "Submit a pull request. No $0 setup fee is required.",
+        ), REF)
+        self.assertEqual(item["disposition"], "QUEUE_VERIFY")
+        self.assertNotIn("explicit_zero_reward", item["risks"])
+        self.assertNotIn("seller_proposal_not_buyer_demand", item["risks"])
+
     def test_signup_or_maintainer_confirmation_becomes_human_gate(self):
         item = triage.classify(
             obs(
