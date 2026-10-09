@@ -6,7 +6,7 @@ P-0007 applies a frozen warning policy to caller-provided historical or syntheti
 
 ```yaml
 - id: backtest
-  uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0007@<immutable-commit>
+  uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0007@458af9cb64fb2b550d1da1dc7597c935c48ed0de
   with:
     dataset: early-action-episodes.json
     output: early-action-backtest.json
