@@ -6,7 +6,7 @@ P-0004 freezes a caller-provided task, budget ceiling, outcome criteria, evidenc
 
 ```yaml
 - id: mandate
-  uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0004@b5c9f097beca043d8aacc2592b962589a599593d
+  uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0004@df630212a355460f821341df3d4bf6d5f85dd4ef
   with:
     draft: outcome-mandate-draft.json
     output: outcome-mandate.json
