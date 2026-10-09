@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import operator
 from datetime import datetime
 from pathlib import Path
@@ -22,11 +23,25 @@ OPERATORS: dict[str, Callable[[Any, Any], bool]] = {
 VARIABLE_ROLES = {"independent", "dependent", "control", "context"}
 
 
+def _reject_non_finite(value: Any, label: str = "value") -> None:
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ValueError(f"{label} contains a non-finite number")
+    if isinstance(value, dict):
+        for key, item in value.items():
+            _reject_non_finite(item, f"{label}.{key}")
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            _reject_non_finite(item, f"{label}[{index}]")
+
+
 def canonical_json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
 def validate_draft(draft: dict[str, Any]) -> None:
+    if not isinstance(draft, dict):
+        raise ValueError("measurement draft must be an object")
+    _reject_non_finite(draft, "draft")
     for field in ("id", "question", "hypothesis", "expires_at"):
         if not str(draft.get(field, "")).strip():
             raise ValueError(f"measurement field {field} cannot be empty")
@@ -61,8 +76,16 @@ def validate_draft(draft: dict[str, Any]) -> None:
     source_ref = str(measurement.get("source_ref", ""))
     if urlparse(source_ref).scheme not in {"https", "dataset", "metric", "artifact"}:
         raise ValueError("measurement source_ref must use an auditable scheme")
-    if int(measurement.get("sample_count", 0)) < 2:
-        raise ValueError("measurement sample_count must be at least two")
+    sample_count = measurement.get("sample_count")
+    if type(sample_count) is not int or sample_count < 2:
+        raise ValueError("measurement sample_count must be an integer of at least two")
+
+    hazard = draft.get("hazard", {})
+    if not isinstance(hazard, dict):
+        raise ValueError("hazard must be an object")
+    for field in ("involves_people", "involves_living_systems", "involves_hazardous_materials", "involves_critical_infrastructure"):
+        if field in hazard and type(hazard[field]) is not bool:
+            raise ValueError(f"hazard.{field} must be boolean")
 
     decision = draft.get("decision_rule", {})
     if decision.get("operator") not in OPERATORS or "threshold" not in decision:
