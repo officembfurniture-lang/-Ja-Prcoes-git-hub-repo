@@ -108,3 +108,7 @@ External reward opportunities may be researched without creating liabilities. No
 ## Integrity and promotion
 
 A successful file commit is not a successful CI run. Production promotion requires independent tests for the exact revision, plus any issue-specific held-out or live validation gates. The deterministic omega shadow driver remains HOLD until its paired trial and correction-burden evidence pass; documentation and financial-policy updates do not waive that requirement.
+
+## Portfolio health (read only)
+
+Run `python3 value-engine/health_report.py` for a JSON snapshot of the observation-to-settlement funnel. This command reads state without changing it, contacting providers, or treating acceptance as payment. Synthetic tests are in `test_health_report.py` and are included by the existing `test_*.py` CI discovery pattern. A report is an internal diagnostic, not independent proof of external use or cash realization.
