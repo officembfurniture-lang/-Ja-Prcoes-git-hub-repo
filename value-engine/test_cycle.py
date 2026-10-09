@@ -223,6 +223,44 @@ class SnapshotRefreshTests(unittest.TestCase):
                     cycle.github_issue_readback(url, None)
                 opener.assert_not_called()
 
+    def test_failed_direct_readback_is_cooled_down_across_cycles(self):
+        self.put_previous(cycle.iso(START))
+        at = START + timedelta(days=8)
+        state, rows, _ = self.execute(at, response=[])
+        self.assertEqual(state["last_cycle_result"]["direct_readback_attempts"], 1)
+        self.assertEqual(state["last_cycle_result"]["direct_readback_captures"], 0)
+        self.assertEqual(len(rows), 1)
+
+        second, same_rows, _ = self.execute(
+            at + timedelta(hours=1), response=[], direct_response=source_item()
+        )
+        self.assertEqual(second["last_cycle_result"]["direct_readback_attempts"], 0)
+        self.assertEqual(len(same_rows), 1)
+
+        third, refreshed, _ = self.execute(
+            at + timedelta(hours=25), response=[], direct_response=source_item()
+        )
+        self.assertEqual(third["last_cycle_result"]["direct_readback_attempts"], 1)
+        self.assertEqual(third["last_cycle_result"]["direct_readback_captures"], 1)
+        self.assertEqual(len(refreshed), 2)
+
+    def test_http_error_status_is_diagnostic_not_a_fresh_capture(self):
+        import urllib.error
+
+        self.put_previous(cycle.iso(START))
+        def unavailable(url):
+            raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)
+
+        state, rows, ledger = self.execute(
+            START + timedelta(days=8), response=[], direct_response=unavailable
+        )
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(state["last_cycle_result"]["direct_readback_captures"], 0)
+        problem = state["last_cycle_result"]["source_errors"][0]
+        self.assertEqual(problem["http_status"], 404)
+        self.assertEqual(problem["error"], "HTTPError")
+        self.assertEqual(ledger[0]["errors"][0]["http_status"], 404)
+
     def test_second_cycle_does_not_repeat_a_recent_refresh(self):
         self.put_previous(cycle.iso(START))
         at = START + timedelta(days=7)
