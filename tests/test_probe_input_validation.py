@@ -227,6 +227,27 @@ class ProbeBoundaryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             p0006.build_opportunity_map(case)
 
+    def test_p0006_uses_regions_as_eligibility_and_does_not_double_count_source_mass(self):
+        case = valid_lineage()
+        case["demands"].append({
+            "id": "D2",
+            "accepted_material_codes": ["WOOD"],
+            "required_tags": ["dry"],
+            "prohibited_contaminants": [],
+            "min_mass_kg": 5,
+            "accepted_regions": ["x"],
+        })
+        result = p0006.build_opportunity_map(case)
+        self.assertEqual(len(result["candidate_matches"]), 2)
+        self.assertEqual(result["candidate_mass_kg"], 10)
+        self.assertEqual(result["candidate_pair_mass_kg"], 20)
+
+        outside = valid_lineage()
+        outside["sources"][0]["region"] = "y"
+        result = p0006.build_opportunity_map(outside)
+        self.assertEqual(result["candidate_matches"], [])
+        self.assertEqual(result["candidate_mass_kg"], 0)
+
     def test_p0007_rejects_string_boolean_and_nonfinite_values(self):
         case = valid_backtest()
         case["episodes"][0]["event_occurred"] = "false"
