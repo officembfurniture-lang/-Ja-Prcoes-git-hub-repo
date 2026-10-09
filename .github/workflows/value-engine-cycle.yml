@@ -32,6 +32,8 @@ jobs:
         run: python3 value-engine/cycle.py
       - name: Validate resulting state
         run: python3 value-engine/validate.py
+      - name: Observe portfolio health without mutating state
+        run: python3 value-engine/health_report.py
       - name: Persist state and observations
         run: |
           if git diff --quiet -- value-engine/; then
