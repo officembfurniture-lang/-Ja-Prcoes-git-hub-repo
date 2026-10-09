@@ -28,6 +28,19 @@ class HealthReportTests(unittest.TestCase):
             self.assertIsNone(report["external_cash_amount"])
             self.assertEqual(path.read_text(encoding="utf-8"), original)
 
+    def test_zero_observations_has_no_fake_conversion_rate(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "state.json").write_text(json.dumps({
+                "engine": "VALUE_ENGINE_v2", "cycle": 0, "phase": "IDLE",
+                "counters": {"observed": 0, "verified": 0, "delivered": 0, "accepted": 0, "paid": 0},
+                "realized": {"cash": []},
+            }), encoding="utf-8")
+            report = health_report.build(root)
+            self.assertIsNone(report["observation_to_verified_ratio"])
+            self.assertIsNone(report["verified_to_delivered_ratio"])
+            self.assertEqual(report["diagnostic_alerts"], [])
+
     def test_paid_count_reduces_unsettled_count(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
