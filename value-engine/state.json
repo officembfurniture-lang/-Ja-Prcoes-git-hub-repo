@@ -2,7 +2,7 @@
   "engine": "VALUE_ENGINE_v2",
   "schema_version": 2,
   "mode": "shadow_until_route_verified",
-  "cycle": 225,
+  "cycle": 226,
   "phase": "IDLE",
   "lease": {
     "cycle_id": null,
@@ -19,7 +19,7 @@
     "cost_savings": []
   },
   "counters": {
-    "observed": 9381,
+    "observed": 9422,
     "verified": 2,
     "selected": 2,
     "produced": 2,
@@ -42,11 +42,25 @@
     "ledger_path": "bounty-engine/ledger.ndjson"
   },
   "last_cycle_result": {
-    "cycle_id": "cycle-225-37957075652",
-    "at": "2026-10-09T16:09:53Z",
-    "new_observations": 21,
+    "cycle_id": "cycle-226-37965112796",
+    "at": "2026-10-09T17:16:49Z",
+    "new_observations": 41,
     "refreshed_snapshots": 0,
-    "source_errors": [],
+    "direct_readback_attempts": 3,
+    "direct_readback_captures": 1,
+    "direct_readback_closed": 1,
+    "source_errors": [
+      {
+        "source": "github_direct_readback",
+        "url": "https://github.com/woahwhattheheck/commons/issues/19313",
+        "error": "HTTPError"
+      },
+      {
+        "source": "github_direct_readback",
+        "url": "https://github.com/celteducational21-svg/agentic-bounty-hunter/issues/1",
+        "error": "HTTPError"
+      }
+    ],
     "selected": 0,
     "delivered": 0,
     "paid": 0,
