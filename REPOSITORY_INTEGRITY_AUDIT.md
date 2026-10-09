@@ -1,6 +1,6 @@
 # Repository Integrity Audit — 2026-10-09
 
-Status: **VALIDATION_PENDING**  
+Status: **VALIDATED**  
 Scope: default branch, workflow topology, VALUE_ENGINE and BOUNTY_ENGINE state/ledgers, public probes P-0002 through P-0007, immutable distribution references, open PR/issues, and all repository branches compared with `main`.
 
 This report records repository evidence. It is not an external-use, economic-return, consciousness, autonomy, or independent-outcome claim.
@@ -40,4 +40,18 @@ GitHub-hosted CI is an external execution environment relative to the local code
 
 ## Merge gate for this audit
 
-This audit may change to **VALIDATED** only after the `Repository Integrity` workflow succeeds on the pull-request merge ref containing this report and the current audit gate. A failure must be preserved and repaired causally; the acceptance criteria must not be weakened merely to obtain a green run.
+GitHub Actions `Repository Integrity` run `37956173127` completed successfully on the pull-request merge ref containing the repository-wide gate and the initial form of this report.
+
+Observed checks in that run:
+
+- strict parse: 23 JSON files and 4 NDJSON files;
+- in-memory syntax validation: 19 Python files;
+- BOUNTY_ENGINE validator: OK;
+- VALUE_ENGINE invariants: OK;
+- VALUE_ENGINE suite: 69 tests passed;
+- repository-wide regression suite: 13 tests passed;
+- P-0002 through P-0007 self-tests: success;
+- portfolio truth-boundary enforcement: OK;
+- repository remained unmodified by self-tests.
+
+Because this status update changes the PR head, the final head must also receive a successful `Repository Integrity` run before merge. A failure must be preserved and repaired causally; acceptance criteria must not be weakened merely to obtain a green run.
