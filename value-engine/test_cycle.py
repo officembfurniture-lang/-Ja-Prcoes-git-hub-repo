@@ -27,6 +27,7 @@ def source_item() -> dict:
         "created_at": "2026-10-01T10:00:00Z",
         "title": "[BOUNTY $20] Test deterministic source refresh",
         "body": "Acceptance criteria: real source readback before work.",
+        "state": "open",
     }
 
 
@@ -59,11 +60,18 @@ class SnapshotRefreshTests(unittest.TestCase):
         self.write_state(1)
         return previous
 
-    def execute(self, at, response=None, error=None):
+    def execute(self, at, response=None, error=None, direct_response=None):
         def search(query, token):
             if error is not None:
                 raise error
             return [source_item()] if response is None else response
+
+        def direct(url, token):
+            if callable(direct_response):
+                return direct_response(url)
+            if direct_response is not None:
+                return direct_response
+            raise RuntimeError("synthetic_direct_readback_unavailable")
 
         with (
             patch.object(cycle, "STATE", self.state),
@@ -72,6 +80,7 @@ class SnapshotRefreshTests(unittest.TestCase):
             patch.object(cycle, "RUNS", self.ledger),
             patch.object(cycle, "now", return_value=at),
             patch.object(cycle, "github_search", side_effect=search),
+            patch.object(cycle, "github_issue_readback", side_effect=direct),
             patch.dict("os.environ", {"GITHUB_RUN_ID": "synthetic"}, clear=False),
             contextlib.redirect_stdout(io.StringIO()),
         ):
