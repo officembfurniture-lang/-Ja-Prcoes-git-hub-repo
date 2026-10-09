@@ -210,3 +210,4 @@
 {"at": "2026-10-09T02:07:25Z", "cycle_id": "cycle-210-37873043070", "errors": [], "new_observations": 36, "realized_value": 0, "result": "SENSE_COMPLETE"}
 {"at": "2026-10-09T08:59:52Z", "cycle_id": "cycle-211-37908412773", "errors": [], "new_observations": 40, "realized_value": 0, "result": "SENSE_COMPLETE"}
 {"at": "2026-10-09T15:03:16Z", "cycle_id": "cycle-212-37948774177", "errors": [], "new_observations": 44, "realized_value": 0, "result": "SENSE_COMPLETE"}
+{"at": "2026-10-09T15:09:45Z", "cycle_id": "cycle-213-37949611976", "errors": [], "new_observations": 28, "realized_value": 0, "result": "SENSE_COMPLETE"}
