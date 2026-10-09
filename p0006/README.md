@@ -6,7 +6,7 @@ P-0006 joins caller-provided material source records to compatible demand record
 
 ```yaml
 - id: lineage
-  uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0006@32773ad94fcd70bb8251a9f1d6d8cdb450e40151
+  uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0006@df630212a355460f821341df3d4bf6d5f85dd4ef
   with:
     dataset: material-lineage.json
     output: material-lineage-opportunity-map.json
