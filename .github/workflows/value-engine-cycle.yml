@@ -32,6 +32,8 @@ jobs:
         run: python3 value-engine/cycle.py
       - name: Validate resulting state
         run: python3 value-engine/validate.py
+      - name: Run deterministic regression suite before persistence
+        run: python3 -m unittest discover -s value-engine -p 'test_*.py' -v
       - name: Observe portfolio health without mutating state
         run: python3 value-engine/health_report.py
       - name: Select advisory feedback focus
