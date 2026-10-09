@@ -2,12 +2,28 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 
 SCHEMA = "horyzont.grid-flex-workload-passport/v0.1"
+
+
+def _finite_number(value: Any, label: str) -> float:
+    if type(value) not in (int, float):
+        raise ValueError(f"{label} must be a finite number")
+    result = float(value)
+    if not math.isfinite(result):
+        raise ValueError(f"{label} must be a finite number")
+    return result
+
+
+def _strict_int(value: Any, label: str) -> int:
+    if type(value) is not int:
+        raise ValueError(f"{label} must be an integer")
+    return value
 
 
 @dataclass(frozen=True)
@@ -22,14 +38,22 @@ class Task:
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> "Task":
+        if not isinstance(payload, dict):
+            raise ValueError("task must be an object")
+        identifier = payload.get("id")
+        if not isinstance(identifier, str) or not identifier.strip():
+            raise ValueError("task id must be a non-empty string")
+        deferrable = payload.get("deferrable", True)
+        if type(deferrable) is not bool:
+            raise ValueError(f"task {identifier} deferrable must be boolean")
         value = cls(
-            id=str(payload["id"]),
-            power_kw=float(payload["power_kw"]),
-            duration_slots=int(payload["duration_slots"]),
-            earliest_slot=int(payload["earliest_slot"]),
-            latest_end_slot=int(payload["latest_end_slot"]),
-            deferrable=bool(payload.get("deferrable", True)),
-            priority=int(payload.get("priority", 50)),
+            id=identifier,
+            power_kw=_finite_number(payload.get("power_kw"), f"task {identifier} power_kw"),
+            duration_slots=_strict_int(payload.get("duration_slots"), f"task {identifier} duration_slots"),
+            earliest_slot=_strict_int(payload.get("earliest_slot"), f"task {identifier} earliest_slot"),
+            latest_end_slot=_strict_int(payload.get("latest_end_slot"), f"task {identifier} latest_end_slot"),
+            deferrable=deferrable,
+            priority=_strict_int(payload.get("priority", 50), f"task {identifier} priority"),
         )
         if not value.id or value.power_kw <= 0 or value.duration_slots <= 0:
             raise ValueError("task id, power_kw and duration_slots must be positive/non-empty")
@@ -64,11 +88,11 @@ def schedule(
     *,
     grid_aware: bool,
 ) -> tuple[dict[str, int], list[float]]:
-    if not grid_stress or site_capacity_kw <= 0:
-        raise ValueError("grid_stress must be non-empty and site_capacity_kw must be positive")
+    if not grid_stress or not math.isfinite(site_capacity_kw) or site_capacity_kw <= 0:
+        raise ValueError("grid_stress must be non-empty and site_capacity_kw must be positive and finite")
     horizon = len(grid_stress)
-    if any(value < 0 for value in grid_stress):
-        raise ValueError("grid_stress values cannot be negative")
+    if any(not math.isfinite(value) or value < 0 for value in grid_stress):
+        raise ValueError("grid_stress values must be finite and non-negative")
     if any(task.latest_end_slot > horizon for task in tasks):
         raise ValueError("a task scheduling window exceeds the grid_stress horizon")
 
@@ -96,10 +120,18 @@ def schedule(
 
 
 def analyze_workload(payload: dict[str, Any]) -> dict[str, Any]:
-    slot_minutes = int(payload["slot_minutes"])
-    site_capacity_kw = float(payload["site_capacity_kw"])
-    grid_stress = [float(value) for value in payload["grid_stress"]]
-    tasks = [Task.from_dict(item) for item in payload["tasks"]]
+    if not isinstance(payload, dict):
+        raise ValueError("workload must be an object")
+    slot_minutes = _strict_int(payload.get("slot_minutes"), "slot_minutes")
+    site_capacity_kw = _finite_number(payload.get("site_capacity_kw"), "site_capacity_kw")
+    raw_stress = payload.get("grid_stress")
+    raw_tasks = payload.get("tasks")
+    if not isinstance(raw_stress, list) or not raw_stress:
+        raise ValueError("grid_stress must be a non-empty list")
+    if not isinstance(raw_tasks, list) or not raw_tasks:
+        raise ValueError("tasks must be a non-empty list")
+    grid_stress = [_finite_number(value, f"grid_stress[{index}]") for index, value in enumerate(raw_stress)]
+    tasks = [Task.from_dict(item) for item in raw_tasks]
     if slot_minutes <= 0 or 60 % slot_minutes != 0:
         raise ValueError("slot_minutes must be a positive divisor of 60")
     if len({task.id for task in tasks}) != len(tasks):
