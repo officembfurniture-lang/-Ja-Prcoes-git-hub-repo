@@ -2,11 +2,20 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 from typing import Any
 
 
 SCHEMA = "horyzont.early-action-backtest/v0.1"
+
+def _finite_number(value: Any, label: str) -> float:
+    if type(value) not in (int, float):
+        raise ValueError(f"{label} must be a finite number")
+    result = float(value)
+    if not math.isfinite(result):
+        raise ValueError(f"{label} must be a finite number")
+    return result
 
 
 def simulate(payload: dict[str, Any]) -> dict[str, Any]:
@@ -14,9 +23,11 @@ def simulate(payload: dict[str, Any]) -> dict[str, Any]:
     policy = payload.get("policy", {})
     if not isinstance(episodes, list) or len(episodes) < 2:
         raise ValueError("at least two historical or synthetic episodes are required")
-    threshold = float(policy.get("warning_threshold", -1))
-    minimum_lead = float(policy.get("minimum_lead_hours", -1))
-    action_cost = float(policy.get("action_cost", -1))
+    if not isinstance(policy, dict):
+        raise ValueError("policy must be an object")
+    threshold = _finite_number(policy.get("warning_threshold"), "policy.warning_threshold")
+    minimum_lead = _finite_number(policy.get("minimum_lead_hours"), "policy.minimum_lead_hours")
+    action_cost = _finite_number(policy.get("action_cost"), "policy.action_cost")
     if not 0 <= threshold <= 1 or minimum_lead < 0 or action_cost < 0:
         raise ValueError("policy threshold, lead time or action cost is invalid")
 
@@ -26,15 +37,22 @@ def simulate(payload: dict[str, Any]) -> dict[str, Any]:
     tp = fp = tn = fn = 0
     identifiers: set[str] = set()
     for episode in episodes:
-        identifier = str(episode.get("id", "")).strip()
-        if not identifier or identifier in identifiers:
-            raise ValueError("episode ids must be non-empty and unique")
+        if not isinstance(episode, dict):
+            raise ValueError("each episode must be an object")
+        identifier_value = episode.get("id")
+        if not isinstance(identifier_value, str) or not identifier_value.strip():
+            raise ValueError("episode ids must be non-empty strings")
+        identifier = identifier_value.strip()
+        if identifier in identifiers:
+            raise ValueError("episode ids must be unique")
         identifiers.add(identifier)
-        warning = float(episode["warning_score"])
-        lead = float(episode["lead_hours"])
-        baseline_loss = float(episode["baseline_loss_units"])
-        mitigated_loss = float(episode["mitigated_loss_units"])
-        occurred = bool(episode["event_occurred"])
+        warning = _finite_number(episode.get("warning_score"), f"episode {identifier} warning_score")
+        lead = _finite_number(episode.get("lead_hours"), f"episode {identifier} lead_hours")
+        baseline_loss = _finite_number(episode.get("baseline_loss_units"), f"episode {identifier} baseline_loss_units")
+        mitigated_loss = _finite_number(episode.get("mitigated_loss_units"), f"episode {identifier} mitigated_loss_units")
+        occurred = episode.get("event_occurred")
+        if type(occurred) is not bool:
+            raise ValueError(f"episode {identifier} event_occurred must be boolean")
         if not 0 <= warning <= 1 or lead < 0 or baseline_loss < 0 or mitigated_loss < 0:
             raise ValueError(f"invalid episode values for {identifier}")
         if mitigated_loss > baseline_loss:
