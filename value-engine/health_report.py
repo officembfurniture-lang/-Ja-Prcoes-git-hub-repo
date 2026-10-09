@@ -14,6 +14,7 @@ def build(root: Path = ROOT) -> dict:
     accepted = counters["accepted"]
     paid = counters["paid"]
     return {
+        "diagnostic_version": 1,
         "engine": state["engine"],
         "cycle": state["cycle"],
         "phase": state["phase"],
@@ -23,6 +24,8 @@ def build(root: Path = ROOT) -> dict:
         "accepted": accepted,
         "paid": paid,
         "accepted_without_verified_payment": accepted - paid,
+        "observation_to_verified_ratio": (counters["verified"] / counters["observed"] if counters["observed"] else None),
+        "verified_to_delivered_ratio": (counters["delivered"] / counters["verified"] if counters["verified"] else None),
         "cash_receipt_count": len(realized["cash"]),
         "external_cash_amount": None,
         "last_sensor_new_observations": state.get("last_cycle_result", {}).get("new_observations"),
