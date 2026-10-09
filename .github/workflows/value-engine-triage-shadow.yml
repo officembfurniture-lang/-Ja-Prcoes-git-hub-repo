@@ -9,6 +9,18 @@ on:
       - value-engine/test_triage.py
       - value-engine/observations.ndjson
       - .github/workflows/value-engine-triage-shadow.yml
+  pull_request:
+    paths:
+      - value-engine/triage.py
+      - value-engine/test_triage.py
+      - .github/workflows/value-engine-triage-shadow.yml
+  workflow_run:
+    workflows:
+      - Value Engine Sensor
+    types:
+      - completed
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -16,6 +28,8 @@ permissions:
 
 jobs:
   shadow-triage:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    timeout-minutes: 12
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -69,4 +83,22 @@ jobs:
               assert item['demand_or_reward_verified'] is False
               assert item['realized_value'] == 0
               assert item['disposition'] == 'QUEUE_VERIFY'
+      - name: Bind output to exact input and checkout
+        run: |
+          git rev-parse HEAD > /tmp/value-engine-triage-checkout-sha.txt
+          sha256sum value-engine/observations.ndjson \
+            /tmp/value-engine-triage-queue.ndjson \
+            /tmp/value-engine-triage-summary.json \
+            > /tmp/value-engine-triage-sha256.txt
+      - name: Preserve read-only VERIFY queue for semantic worker
+        uses: actions/upload-artifact@v4
+        with:
+          name: value-engine-pre-verify-${{ github.run_id }}
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            /tmp/value-engine-triage-queue.ndjson
+            /tmp/value-engine-triage-summary.json
+            /tmp/value-engine-triage-sha256.txt
+            /tmp/value-engine-triage-checkout-sha.txt
           PY
