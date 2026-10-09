@@ -13,6 +13,8 @@ on:
     paths:
       - value-engine/triage.py
       - value-engine/test_triage.py
+      - value-engine/source_probe.py
+      - value-engine/test_source_probe.py
       - .github/workflows/value-engine-triage-shadow.yml
   workflow_run:
     workflows:
@@ -36,6 +38,9 @@ jobs:
       - name: Unit tests
         working-directory: value-engine
         run: python3 -m unittest -v test_triage.py
+      - name: Source readback regression tests (offline)
+        working-directory: value-engine
+        run: python3 -m unittest -v test_source_probe.py
       - name: Replay triage against persisted observations
         working-directory: value-engine
         run: |
@@ -65,6 +70,16 @@ jobs:
                   'risks': item.get('risks', []),
               }, ensure_ascii=False, sort_keys=True))
           PY
+      - name: Bounded source readback of queue candidates (non-authoritative)
+        working-directory: value-engine
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 source_probe.py \
+            --queue /tmp/value-engine-triage-queue.ndjson \
+            --output /tmp/value-engine-source-readback.ndjson \
+            --summary /tmp/value-engine-source-readback-summary.json \
+            --limit 3
       - name: Enforce shadow invariants
         run: |
           python3 - <<'PY'
@@ -77,6 +92,30 @@ jobs:
           assert summary['snapshot_max_age_days'] == 7
           assert summary['authoritative'] is False
           assert 0 <= summary['verify_queue_emitted'] <= 50
+
+          # A fresh GitHub GET never grants economic or execution authority.
+          from hashlib import sha256
+          probe = json.loads(Path('/tmp/value-engine-source-readback-summary.json').read_text())
+          assert probe['schema'] == 'value-engine.source-readback/v1'
+          assert probe['stage'] == 'SOURCE_READBACK_NON_AUTHORITATIVE'
+          assert probe['authoritative'] is False
+          assert probe['queue_sha256'] == sha256(Path('/tmp/value-engine-triage-queue.ndjson').read_bytes()).hexdigest()
+          assert 0 <= probe['attempted'] <= 3
+          assert 0 <= probe['results'] <= 3
+          for key in ('primary_source_verified', 'demand_or_reward_verified',
+                      'settlement_route_verified', 'authorization_to_execute'):
+              assert probe[key] is False, key
+          assert probe['realized_value'] == 0
+          evidence = Path('/tmp/value-engine-source-readback.ndjson').read_text().splitlines()
+          assert len(evidence) == probe['results']
+          for line in evidence:
+              entry = json.loads(line)
+              assert entry['status'] in ('READBACK_OPEN', 'READBACK_CLOSED', 'READBACK_FAILED')
+              assert entry['primary_source_verified'] is False
+              assert entry['demand_or_reward_verified'] is False
+              assert entry['settlement_route_verified'] is False
+              assert entry['authorization_to_execute'] is False
+              assert entry['realized_value'] == 0
 
           queue = Path('/tmp/value-engine-triage-queue.ndjson').read_text().splitlines()
           for line in queue:
@@ -93,6 +132,8 @@ jobs:
           sha256sum value-engine/observations.ndjson \
             /tmp/value-engine-triage-queue.ndjson \
             /tmp/value-engine-triage-summary.json \
+            /tmp/value-engine-source-readback.ndjson \
+            /tmp/value-engine-source-readback-summary.json \
             > /tmp/value-engine-triage-sha256.txt
       - name: Preserve read-only VERIFY queue for semantic worker
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -103,5 +144,7 @@ jobs:
           path: |
             /tmp/value-engine-triage-queue.ndjson
             /tmp/value-engine-triage-summary.json
+            /tmp/value-engine-source-readback.ndjson
+            /tmp/value-engine-source-readback-summary.json
             /tmp/value-engine-triage-sha256.txt
             /tmp/value-engine-triage-checkout-sha.txt
