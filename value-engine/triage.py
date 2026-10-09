@@ -12,7 +12,7 @@ import argparse
 import json
 import re
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Iterable
 
@@ -20,6 +20,8 @@ ROOT = Path(__file__).resolve().parent
 DEFAULT_OBS = ROOT / "observations.ndjson"
 DEFAULT_QUEUE = ROOT / "triage-queue.ndjson"
 DEFAULT_SUMMARY = ROOT / "triage-summary.json"
+# A stored source snapshot is not a live readback. This is a queue-only freshness gate.
+SNAPSHOT_MAX_AGE = timedelta(days=7)
 
 VALUE_RE = re.compile(
     r"(?:\$\s?\d[\d,.]*|\b\d[\d,.]*\s?(?:USD|USDC|EUR|GBP|sats?|RTC)\b)",
@@ -145,6 +147,10 @@ def classify(record: dict, reference_time: datetime) -> dict:
     else:
         risks.append("freshness_unknown")
 
+    detected = parse_time(record.get("detected_at"))
+    if detected is None or detected > reference_time or reference_time - detected > SNAPSHOT_MAX_AGE:
+        risks.append("observation_snapshot_stale_or_unknown")
+
     if zero_reward:
         risks.append("explicit_zero_reward")
 
@@ -249,6 +255,8 @@ def classify(record: dict, reference_time: datetime) -> dict:
         disposition = "HOLD_DEPENDENCIES"
     elif "reward_not_yet_confirmed" in risks:
         disposition = "HOLD_REWARD_UNCONFIRMED"
+    elif "observation_snapshot_stale_or_unknown" in risks:
+        disposition = "HOLD_STALE_OBSERVATION"
     elif score >= 8:
         disposition = "QUEUE_VERIFY"
     else:
@@ -327,9 +335,12 @@ def reference_time(records: list[dict]) -> datetime:
     return max(known) if known else datetime.now(timezone.utc)
 
 
-def run(observations: Path, queue_path: Path, summary_path: Path, limit: int) -> dict:
+def run(observations: Path, queue_path: Path, summary_path: Path, limit: int,
+        as_of: datetime | None = None) -> dict:
     records = newest_by_url(iter_records(observations))
-    ref = reference_time(records)
+    if as_of is not None and (as_of.tzinfo is None or as_of.utcoffset() is None):
+        raise ValueError("as_of must include timezone")
+    ref = as_of.astimezone(timezone.utc) if as_of is not None else reference_time(records)
     triaged = [classify(record, ref) for record in records]
     verify = sorted(
         (item for item in triaged if item["disposition"] == "QUEUE_VERIFY"),
@@ -345,6 +356,8 @@ def run(observations: Path, queue_path: Path, summary_path: Path, limit: int) ->
         "engine": "VALUE_ENGINE_v2",
         "stage": "PRE_VERIFY_TRIAGE",
         "reference_time": ref.isoformat().replace("+00:00", "Z"),
+        "reference_time_source": "explicit_as_of" if as_of is not None else "latest_observed_detection",
+        "snapshot_max_age_days": SNAPSHOT_MAX_AGE.days,
         "unique_observations": len(records),
         "verify_queue_total": sum(1 for item in triaged if item["disposition"] == "QUEUE_VERIFY"),
         "verify_queue_emitted": len(verify),
@@ -362,10 +375,15 @@ def main() -> int:
     parser.add_argument("--queue", type=Path, default=DEFAULT_QUEUE)
     parser.add_argument("--summary", type=Path, default=DEFAULT_SUMMARY)
     parser.add_argument("--limit", type=int, default=50)
+    parser.add_argument("--as-of", type=str, default=None,
+                        help="Explicit timezone-aware evaluation time for live triage; replay uses recorded input otherwise.")
     args = parser.parse_args()
     if args.limit < 1:
         parser.error("--limit must be >= 1")
-    summary = run(args.observations, args.queue, args.summary, args.limit)
+    as_of = parse_time(args.as_of) if args.as_of is not None else None
+    if args.as_of is not None and as_of is None:
+        parser.error("--as-of must be a timezone-aware ISO timestamp")
+    summary = run(args.observations, args.queue, args.summary, args.limit, as_of=as_of)
     print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
     return 0
 
