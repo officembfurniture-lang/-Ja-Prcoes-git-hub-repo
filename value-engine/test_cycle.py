@@ -147,6 +147,82 @@ class SnapshotRefreshTests(unittest.TestCase):
                          "RuntimeError")
         self.assertEqual(ledger[0]["new_observations"], 0)
 
+    def test_stale_candidate_fallen_out_of_search_is_directly_recaptured(self):
+        self.put_previous(cycle.iso(START))
+        at = START + timedelta(days=8)
+        state, rows, ledger = self.execute(
+            at, response=[], direct_response=source_item()
+        )
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[1]["source_state"], "open")
+        self.assertFalse(rows[1]["primary_source_verified"])
+        self.assertEqual(state["last_cycle_result"]["new_observations"], 0)
+        self.assertEqual(state["last_cycle_result"]["refreshed_snapshots"], 1)
+        self.assertEqual(state["last_cycle_result"]["direct_readback_attempts"], 1)
+        self.assertEqual(state["last_cycle_result"]["direct_readback_captures"], 1)
+        self.assertEqual(ledger[0]["direct_readback_captures"], 1)
+
+    def test_closed_source_is_captured_but_held_from_verify(self):
+        import triage
+
+        self.put_previous(cycle.iso(START))
+        closed = dict(source_item(), state="closed",
+                      updated_at="2026-10-09T11:00:00Z")
+        at = START + timedelta(days=8)
+        state, rows, _ = self.execute(at, response=[], direct_response=closed)
+        self.assertEqual(state["last_cycle_result"]["direct_readback_closed"], 1)
+        self.assertEqual(len(rows), 2)
+        latest = triage.newest_by_url(rows)[0]
+        self.assertEqual(latest["source_state"], "closed")
+        self.assertEqual(triage.classify(latest, at)["disposition"], "HOLD_SOURCE_CLOSED")
+
+    def test_identity_mismatch_does_not_create_fake_readback(self):
+        self.put_previous(cycle.iso(START))
+        mismatched = dict(source_item(), id=777)
+        state, rows, _ = self.execute(
+            START + timedelta(days=8), response=[], direct_response=mismatched
+        )
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(state["last_cycle_result"]["direct_readback_attempts"], 1)
+        self.assertEqual(state["last_cycle_result"]["direct_readback_captures"], 0)
+        self.assertEqual(state["last_cycle_result"]["source_errors"][0]["error"], "ValueError")
+
+    def test_at_most_three_direct_readbacks_per_cycle(self):
+        observed = []
+        available = {}
+        for n in range(1, 6):
+            record = dict(source_item(), id=n,
+                          html_url=f"https://github.com/example/repo/issues/{n}")
+            available[record["html_url"]] = record
+            observed.append(cycle.normalize(record, "one", cycle.iso(START)))
+        self.observations.write_text(
+            "".join(json.dumps(x) + "\n" for x in observed), encoding="utf-8"
+        )
+        self.write_state(len(observed))
+        calls = []
+        def retrieve(url):
+            calls.append(url)
+            return available[url]
+        state, rows, _ = self.execute(
+            START + timedelta(days=8), response=[], direct_response=retrieve
+        )
+        self.assertEqual(state["last_cycle_result"]["direct_readback_attempts"], 3)
+        self.assertEqual(state["last_cycle_result"]["direct_readback_captures"], 3)
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(len(rows), 8)
+
+    def test_direct_issue_url_allowlist_prevents_external_fetch(self):
+        for url in (
+            "https://evil.example/issues/7",
+            "https://github.com/owner/repo/pull/3",
+            "https://github.com/owner/repo/issues/1?redirect=evil",
+            "https://github.com/owner/repo/issues/0",
+        ):
+            with self.subTest(url=url), patch.object(cycle.urllib.request, "urlopen") as opener:
+                with self.assertRaises(ValueError):
+                    cycle.github_issue_readback(url, None)
+                opener.assert_not_called()
+
     def test_second_cycle_does_not_repeat_a_recent_refresh(self):
         self.put_previous(cycle.iso(START))
         at = START + timedelta(days=7)
