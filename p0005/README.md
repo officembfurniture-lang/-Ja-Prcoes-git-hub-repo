@@ -18,14 +18,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - id: protocol
-        uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0005@main
+        uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0005@<immutable-commit>
         with:
           draft: measurement-draft.json
           output: measurement-protocol.json
       - run: echo "Protocol ${{ steps.protocol.outputs.protocol-hash }}"
 ```
 
-Replace `main` with the immutable commit recorded in `value-circuit.json` before reproducible use.
+Use the immutable package commit recorded in `value-circuit.json` for reproducible use; do not substitute a moving branch such as `main`.
 
 The action has no network step and does not upload the input or output. It validates the draft, freezes the design and returns the protocol hash plus a review flag. It does not recruit participants, execute an experiment, collect measurements, establish causality or authorize work involving people, living systems, hazardous materials or critical infrastructure.
 
