@@ -10,13 +10,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 VALID_PHASES = {
     "IDLE", "SENSE", "VERIFY", "ROUTE", "SELECT", "ACQUIRE", "PRODUCE",
-    "VALIDATE", "DELIVER", "OBSERVE", "SETTLE", "LEARN", "HUMAN_GATE"
+    "VALIDATE", "DELIVER", "OBSERVE", "SETTLE", "LEARN", "HUMAN_GATE",
+    "PAYMENT_GATE_BLOCKED"
 }
 PRODUCTION_PHASES = {"PRODUCE", "VALIDATE", "DELIVER", "OBSERVE", "SETTLE"}
 REQUIRED_GATES = (
     "primary_source_verified", "demand_or_reward_verified",
     "acceptance_criteria_known", "delivery_route_verified_before_production",
     "settlement_route_verified_before_production", "safety_and_legality_pass",
+    "no_unapproved_paid_work", "no_unapproved_third_party_engagement",
 )
 
 
@@ -107,6 +109,10 @@ def validate_outcomes(rows: list[dict], counters: dict) -> None:
         fail("paid counter must match distinct PAID opportunity receipts")
 
 
+def active_payment_liability(state: dict) -> bool:
+    active = state.get("active_opportunity")
+    return isinstance(active, dict) and (active.get("paid_work_commissioned") is True or active.get("financial_obligation_authorized") is True)
+
 def main() -> int:
     state = load("state.json")
     policy = load("policy.json")
@@ -131,6 +137,8 @@ def main() -> int:
         expires = timestamp(lease["expires_at"], "lease.expires_at")
         if expires <= acquired:
             fail("lease expiry must be after acquisition")
+    if state.get("phase") == "PAYMENT_GATE_BLOCKED" and active_payment_liability(state):
+        fail("blocked payment state must not retain an active payable engagement")
     if state.get("phase") == "IDLE" and any(populated):
         fail("IDLE state may not retain an active lease")
 
