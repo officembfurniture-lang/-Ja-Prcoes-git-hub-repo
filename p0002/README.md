@@ -16,9 +16,9 @@ jobs:
   passport:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - id: passport
-        uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0002@<immutable-commit>
+        uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0002@e3133e57d2dae07cb59b4a7e948573a0aa8557fd
       - run: echo "${{ steps.passport.outputs.inventory-hash }}"
 ```
 
