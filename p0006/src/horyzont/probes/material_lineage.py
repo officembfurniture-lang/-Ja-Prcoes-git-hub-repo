@@ -77,8 +77,16 @@ def build_opportunity_map(payload: dict[str, Any]) -> dict[str, Any]:
             )
             if source_mass < demand_mass:
                 continue
-            accepted_regions = set(demand.get("accepted_regions", []))
-            region_match = not accepted_regions or source.get("region") in accepted_regions
+            accepted_regions_raw = demand.get("accepted_regions", [])
+            if not isinstance(accepted_regions_raw, list) or any(
+                not isinstance(region, str) or not region.strip()
+                for region in accepted_regions_raw
+            ):
+                raise ValueError(f"demand {demand['id']} accepted_regions must be a list of non-empty strings")
+            accepted_regions = set(accepted_regions_raw)
+            if accepted_regions and source.get("region") not in accepted_regions:
+                continue
+            region_match = True
             tag_score = len(required_tags) / max(len(source_tags), 1)
             mass_ratio = min(1.0, source_mass / demand_mass)
             score = round(0.5 * mass_ratio + 0.3 * tag_score + 0.2 * int(region_match), 4)
@@ -99,7 +107,15 @@ def build_opportunity_map(payload: dict[str, Any]) -> dict[str, Any]:
         "candidate_matches": candidates,
         "unmatched_source_ids": sorted(source["id"] for source in payload["sources"] if source["id"] not in matched_sources),
         "unmatched_demand_ids": sorted(demand["id"] for demand in payload["demands"] if demand["id"] not in matched_demands),
-        "candidate_mass_kg": round(sum(item["candidate_mass_kg"] for item in candidates), 6),
+        "candidate_mass_kg": round(
+            sum(
+                _positive_finite_number(source["mass_kg"], f"source {source['id']} mass_kg")
+                for source in payload["sources"]
+                if source["id"] in matched_sources
+            ),
+            6,
+        ),
+        "candidate_pair_mass_kg": round(sum(item["candidate_mass_kg"] for item in candidates), 6),
         "truth_boundary": {
             "physical_transfer_occurred": False,
             "ownership_transfer_authorized": False,
