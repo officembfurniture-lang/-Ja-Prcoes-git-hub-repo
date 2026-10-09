@@ -16,9 +16,9 @@ jobs:
   compile:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - id: protocol
-        uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0005@<immutable-commit>
+        uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0005@62feb7ce4190989634b5f0da37f4bc4cc82a18ed
         with:
           draft: measurement-draft.json
           output: measurement-protocol.json
