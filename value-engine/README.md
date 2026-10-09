@@ -62,6 +62,23 @@ A blocked opportunity may remain observed and become executable later if a new c
 
 Potential and advertised values are never added to realized value. Cash realization requires amount, currency, receipt/evidence and receipt timestamp. Non-cash value and cost savings are tracked separately rather than silently converted into money.
 
+## Source-snapshot refresh semantics
+
+The sensor fingerprints GitHub issues by source identity, URL and source update time.
+A previously captured revision can remain open without receiving a new `updated_at`.
+After six days, a fresh successful GitHub search readback of that revision is stored
+as a new **snapshot** (the fingerprint remains unchanged but `detected_at` advances).
+This keeps it eligible for the separate seven-day pre-VERIFY snapshot freshness
+gate without bypassing that gate. No network result means no refresh.
+
+`last_cycle_result.new_observations` counts previously unseen source revisions;
+`last_cycle_result.refreshed_snapshots` counts repeated source-revision readbacks.
+`counters.observed` counts appended records from both groups, **not** unique
+opportunities, verified demand, funding, customer commitments or financial value.
+Multiple search queries cannot duplicate a fingerprint within a single run.
+Every queue candidate still requires independent primary-source verification
+before any selection or work.
+
 ## Concurrency and crash recovery
 
 Every active cycle holds a lease (`cycle_id`, owner, acquired/expires timestamps). A live lease causes a second scheduler to exit. Only an expired lease may be taken over. This allows redundant schedulers without duplicate work.
