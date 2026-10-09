@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - id: mandate
-        uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0004@b5c9f097beca043d8aacc2592b962589a599593d
+        uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0004@df630212a355460f821341df3d4bf6d5f85dd4ef
         with:
           draft: outcome-mandate-draft.json
           output: outcome-mandate.json
@@ -60,7 +60,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - id: flex
-        uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo@9401f04303d141e38052b54d370797d7ae4a2eae
+        uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo@df630212a355460f821341df3d4bf6d5f85dd4ef
         with:
           workload: examples/workload.json
           output: grid-flex-result.json
@@ -92,7 +92,7 @@ P-0005 freezes a bounded measurement draft into a deterministic, hash-addressed 
 
 ```yaml
 - id: protocol
-  uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0005@62feb7ce4190989634b5f0da37f4bc4cc82a18ed
+  uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0005@df630212a355460f821341df3d4bf6d5f85dd4ef
   with:
     draft: measurement-draft.json
     output: measurement-protocol.json
@@ -106,7 +106,7 @@ P-0006 deterministically joins caller-provided material-source and demand record
 
 ```yaml
 - id: lineage
-  uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0006@32773ad94fcd70bb8251a9f1d6d8cdb450e40151
+  uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0006@df630212a355460f821341df3d4bf6d5f85dd4ef
   with:
     dataset: material-lineage.json
     output: material-lineage-opportunity-map.json
@@ -120,7 +120,7 @@ P-0007 applies a frozen warning policy to caller-provided historical or syntheti
 
 ```yaml
 - id: backtest
-  uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0007@458af9cb64fb2b550d1da1dc7597c935c48ed0de
+  uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0007@df630212a355460f821341df3d4bf6d5f85dd4ef
   with:
     dataset: early-action-episodes.json
     output: early-action-backtest.json
@@ -133,7 +133,7 @@ P-0002 builds a hash-only inventory of repository files and filename-derived tra
 
 ```yaml
 - id: passport
-  uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0002@e3133e57d2dae07cb59b4a7e948573a0aa8557fd
+  uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0002@df630212a355460f821341df3d4bf6d5f85dd4ef
   with:
     root: .
     output: agent-operations-passport.json
@@ -147,7 +147,7 @@ P-0004 freezes a caller-provided task, budget ceiling, outcome criteria, evidenc
 
 ```yaml
 - id: mandate
-  uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0004@b5c9f097beca043d8aacc2592b962589a599593d
+  uses: officembfurniture-lang/-Ja-Prcoes-git-hub-repo/p0004@df630212a355460f821341df3d4bf6d5f85dd4ef
   with:
     draft: outcome-mandate-draft.json
     output: outcome-mandate.json
