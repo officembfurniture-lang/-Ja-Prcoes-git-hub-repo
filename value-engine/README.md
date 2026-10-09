@@ -107,6 +107,33 @@ and `direct_readback_closed`. These are sensor measurements, not confirmed
 payment or adoption. The cap and deterministic ranking prevent unbounded
 retrieval, but do not guarantee that every archived issue is revisited.
 
+## Bounded source evidence, separate from triage rank
+
+The `Value Engine Triage Shadow` workflow now executes `source_probe.py`
+on up to **three unique pre-VERIFY queue URLs** per run. Its GitHub API
+`GET` receipts record whether an issue currently exists and is open or
+closed, the original queued title/update timestamp, returned source
+revision fields, a SHA-256 digest of selected returned source content,
+and a time-bound provenance reference to the queue's SHA-256.
+
+The probe deliberately does not trust the bounty label, a source's
+self-asserted `funded` text or the triage score as proof of secured
+payment. All resulting records and the summary preserve
+`primary_source_verified=false`,
+`demand_or_reward_verified=false`,
+`settlement_route_verified=false`,
+`authorization_to_execute=false` and `realized_value=0`.
+Malformed URLs, pull-request API payloads, mismatched issue numbers and
+HTTP errors yield no positive evidence. Network errors are auditable
+`READBACK_FAILED` receipts, not a successful verification.
+
+The readback receipts, input queue, SHA-256 manifest and checkout
+revision are retained together in a seven-day workflow artifact.
+A successful run verifies **the bounded data-acquisition mechanism**;
+it does not show that an independently controlled actor accepted,
+funded, bought, used, or paid for anything. Financial, delivery, safety
+and consent gates remain separate prior to execution.
+
 ## Concurrency and crash recovery
 
 Every active cycle holds a lease (`cycle_id`, owner, acquired/expires timestamps). A live lease causes a second scheduler to exit. Only an expired lease may be taken over. This allows redundant schedulers without duplicate work.
