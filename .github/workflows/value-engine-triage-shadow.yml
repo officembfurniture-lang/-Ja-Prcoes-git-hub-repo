@@ -83,6 +83,7 @@ jobs:
               assert item['demand_or_reward_verified'] is False
               assert item['realized_value'] == 0
               assert item['disposition'] == 'QUEUE_VERIFY'
+          PY
       - name: Bind output to exact input and checkout
         run: |
           git rev-parse HEAD > /tmp/value-engine-triage-checkout-sha.txt
@@ -101,4 +102,3 @@ jobs:
             /tmp/value-engine-triage-summary.json
             /tmp/value-engine-triage-sha256.txt
             /tmp/value-engine-triage-checkout-sha.txt
-          PY
