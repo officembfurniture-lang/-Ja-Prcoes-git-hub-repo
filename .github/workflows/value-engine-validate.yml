@@ -20,7 +20,7 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Validate VALUE_ENGINE invariants
         run: python3 value-engine/validate.py
       - name: Test VALUE_ENGINE validation and triage
