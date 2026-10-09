@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import operator
 from datetime import datetime
 from pathlib import Path
@@ -22,18 +23,35 @@ OPERATORS: dict[str, Callable[[Any, Any], bool]] = {
 }
 
 
+def _reject_non_finite(value: Any, label: str = "value") -> None:
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ValueError(f"{label} contains a non-finite number")
+    if isinstance(value, dict):
+        for key, item in value.items():
+            _reject_non_finite(item, f"{label}.{key}")
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            _reject_non_finite(item, f"{label}[{index}]")
+
+
 def canonical_json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
 def _parse_time(value: str) -> datetime:
     try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except (TypeError, ValueError) as error:
+        result = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (AttributeError, TypeError, ValueError) as error:
         raise ValueError("timestamps must be ISO-8601") from error
+    if result.tzinfo is None or result.utcoffset() is None:
+        raise ValueError("timestamps must include a timezone")
+    return result
 
 
 def validate_draft(draft: dict[str, Any]) -> None:
+    if not isinstance(draft, dict):
+        raise ValueError("mandate draft must be an object")
+    _reject_non_finite(draft, "draft")
     required_text = ("issuer", "task", "kill_gate", "expires_at")
     for key in required_text:
         if not str(draft.get(key, "")).strip():
@@ -42,13 +60,24 @@ def validate_draft(draft: dict[str, Any]) -> None:
     if draft.get("authority") not in ALLOWED_AUTHORITIES:
         raise ValueError("authority must be A0, A1, A2 or A3")
     budget = draft.get("budget")
-    if not isinstance(budget, dict) or float(budget.get("amount", -1)) < 0 or not budget.get("currency"):
-        raise ValueError("budget requires a non-negative amount and currency")
+    amount = budget.get("amount") if isinstance(budget, dict) else None
+    currency = budget.get("currency") if isinstance(budget, dict) else None
+    if (
+        not isinstance(budget, dict)
+        or type(amount) not in (int, float)
+        or not math.isfinite(float(amount))
+        or amount < 0
+        or not isinstance(currency, str)
+        or not currency.strip()
+    ):
+        raise ValueError("budget requires a non-negative finite amount and non-empty currency")
     criteria = draft.get("criteria")
     if not isinstance(criteria, list) or not criteria:
         raise ValueError("at least one outcome criterion is required")
     metric_names = set()
     for criterion in criteria:
+        if not isinstance(criterion, dict):
+            raise ValueError("each outcome criterion must be an object")
         metric = str(criterion.get("metric", "")).strip()
         if not metric or metric in metric_names:
             raise ValueError("criterion metric names must be non-empty and unique")
@@ -86,6 +115,10 @@ def freeze_mandate(draft: dict[str, Any]) -> dict[str, Any]:
 
 
 def evaluate_attestation(mandate: dict[str, Any], attestation: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(mandate, dict) or not isinstance(attestation, dict):
+        raise ValueError("mandate and attestation must be objects")
+    _reject_non_finite(mandate, "mandate")
+    _reject_non_finite(attestation, "attestation")
     mandate_hash = mandate.get("mandate_hash")
     body = {key: value for key, value in mandate.items() if key != "mandate_hash"}
     expected_hash = hashlib.sha256(canonical_json(body).encode("utf-8")).hexdigest()
@@ -117,7 +150,11 @@ def evaluate_attestation(mandate: dict[str, Any], attestation: dict[str, Any]) -
 
     allowed_schemes = set(mandate["evidence_policy"]["allowed_schemes"])
     evidence_refs = attestation.get("evidence_refs", [])
-    evidence_valid = bool(evidence_refs) and all(urlparse(value).scheme in allowed_schemes for value in evidence_refs)
+    evidence_valid = (
+        isinstance(evidence_refs, list)
+        and bool(evidence_refs)
+        and all(isinstance(value, str) and urlparse(value).scheme in allowed_schemes for value in evidence_refs)
+    )
     accepted = all(
         [
             integrity_valid,
