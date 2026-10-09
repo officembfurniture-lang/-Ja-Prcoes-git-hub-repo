@@ -67,7 +67,10 @@ def classify_path(path: Path) -> list[str]:
 
 def iter_candidate_files(root: Path) -> Iterable[Path]:
     for path in sorted(root.rglob("*")):
-        if not path.is_file():
+        # Do not follow repository symlinks into files outside the declared root.
+        # The passport is a hash-only inventory of the caller tree, not a generic
+        # filesystem probe.
+        if path.is_symlink() or not path.is_file():
             continue
         relative = path.relative_to(root)
         if any(part in SKIP_DIRS for part in relative.parts):
