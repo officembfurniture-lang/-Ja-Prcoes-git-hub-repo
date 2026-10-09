@@ -240,7 +240,10 @@ def classify(record: dict, reference_time: datetime) -> dict:
         # Do not trust self-asserted serialized flags from mirrors as verification.
         risks.append("self_asserted_verification_only")
 
-    if "explicit_start_prohibition" in risks:
+    if record.get("source_state") == "closed":
+        risks.append("source_closed")
+        disposition = "HOLD_SOURCE_CLOSED"
+    elif "explicit_start_prohibition" in risks:
         disposition = "HOLD_START_PROHIBITED"
     elif any(risk in risks for risk in (
         "mirror_or_radar_source", "discovery_report_not_direct_offer",
