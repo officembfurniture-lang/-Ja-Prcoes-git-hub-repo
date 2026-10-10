@@ -2,7 +2,7 @@
   "engine": "VALUE_ENGINE_v2",
   "schema_version": 2,
   "mode": "shadow_until_route_verified",
-  "cycle": 229,
+  "cycle": 230,
   "phase": "IDLE",
   "lease": {
     "cycle_id": null,
@@ -19,7 +19,7 @@
     "cost_savings": []
   },
   "counters": {
-    "observed": 9543,
+    "observed": 9585,
     "verified": 2,
     "selected": 2,
     "produced": 2,
@@ -42,21 +42,14 @@
     "ledger_path": "bounty-engine/ledger.ndjson"
   },
   "last_cycle_result": {
-    "cycle_id": "cycle-229-38010582848",
-    "at": "2026-10-10T00:48:07Z",
-    "new_observations": 46,
-    "refreshed_snapshots": 0,
+    "cycle_id": "cycle-230-38033101403",
+    "at": "2026-10-10T07:03:50Z",
+    "new_observations": 41,
+    "refreshed_snapshots": 1,
     "direct_readback_attempts": 3,
-    "direct_readback_captures": 2,
-    "direct_readback_closed": 0,
-    "source_errors": [
-      {
-        "source": "github_direct_readback",
-        "url": "https://github.com/kwizzlesurp10-ctrl/x402-mcp/issues/494",
-        "error": "HTTPError",
-        "http_status": 404
-      }
-    ],
+    "direct_readback_captures": 3,
+    "direct_readback_closed": 2,
+    "source_errors": [],
     "selected": 0,
     "delivered": 0,
     "paid": 0,
