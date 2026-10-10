@@ -1,0 +1,149 @@
+{
+  "verified_at": "2026-09-13T18:43:19.509159+00:00",
+  "baseline_commit": "effec24d744d6cb0b899eed10031e97d9c0eb82e",
+  "baseline_source_sha256": "a4036490ec0e2b65c3357678590328e407681d71b3fdb2032f51f6f83cf32437",
+  "candidate_source_sha256": "f15b2be4fd93957e69c6ad4c3ddb3dcd5ffb6994abe05890fa2db2b7a3be2b8f",
+  "recovered_spec_sha256": "2eeb01b825f8162e9ba2cc501d590d94c34d52dbb31257b8cd4535166d949285",
+  "source_note": "Implementation from recovered specification and current GitHub v0; original standalone v1 source was not available.",
+  "fixture_count": 12,
+  "unit_test_count": 21,
+  "checks": [
+    {
+      "check": "unittest",
+      "exit_code": 0,
+      "log_sha256": "0fd4066a106a51d512833fe052169ca7808604919992631719ca83fc8e58f35c"
+    },
+    {
+      "check": "compileall",
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "fixture_json",
+      "exit_code": 0,
+      "log_sha256": "aa4e6f2f0537221005b6d02ba46f943ed9fc1b4096088eb42d9ab4ddd28d15c1"
+    },
+    {
+      "check": "diff_check",
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "known_case_comparison": [
+    {
+      "case": "no_delta",
+      "baseline": "NO_DELTA",
+      "candidate": "NO_DELTA",
+      "expected": "NO_DELTA"
+    },
+    {
+      "case": "verified_material_delta",
+      "baseline": "PROMOTE",
+      "candidate": "PROMOTE",
+      "expected": "PROMOTE"
+    },
+    {
+      "case": "artifact_verified_but_no_decision_effect",
+      "baseline": "HOLD",
+      "candidate": "HOLD",
+      "expected": "HOLD"
+    },
+    {
+      "case": "burden_regression",
+      "baseline": "DRIVER_REGRESSION",
+      "candidate": "DRIVER_REGRESSION",
+      "expected": "DRIVER_REGRESSION"
+    },
+    {
+      "case": "unsupported_progress_claim",
+      "baseline": "PROMOTE",
+      "candidate": "DRIVER_REGRESSION",
+      "expected": "DRIVER_REGRESSION"
+    },
+    {
+      "case": "distribution_verified_without_use_or_effect",
+      "baseline": "HOLD",
+      "candidate": "HOLD",
+      "expected": "HOLD"
+    },
+    {
+      "case": "material_effect_with_unknown_burden",
+      "baseline": "HOLD",
+      "candidate": "HOLD",
+      "expected": "HOLD"
+    },
+    {
+      "case": "debt_over_limit",
+      "baseline": "HOLD",
+      "candidate": "HOLD",
+      "expected": "HOLD"
+    },
+    {
+      "case": "action_with_unverified_support",
+      "baseline": "PROMOTE",
+      "candidate": "HOLD",
+      "expected": "HOLD"
+    },
+    {
+      "case": "vague_provenance_string",
+      "baseline": "PROMOTE",
+      "candidate": "INPUT_INVALID",
+      "expected": "INPUT_INVALID"
+    },
+    {
+      "case": "duplicate_evidence_identifier",
+      "baseline": "PROMOTE",
+      "candidate": "INPUT_INVALID",
+      "expected": "INPUT_INVALID"
+    },
+    {
+      "case": "burden_regression_despite_material_effect",
+      "baseline": "PROMOTE",
+      "candidate": "DRIVER_REGRESSION",
+      "expected": "DRIVER_REGRESSION"
+    }
+  ],
+  "five_known_failure_reproductions": [
+    {
+      "known_failure": "vague_provenance",
+      "baseline": "PROMOTE",
+      "candidate": "INPUT_INVALID"
+    },
+    {
+      "known_failure": "dangling_progress_reference",
+      "baseline": "PROMOTE",
+      "candidate": "DRIVER_REGRESSION"
+    },
+    {
+      "known_failure": "null_burden",
+      "baseline": "PROMOTE",
+      "candidate": "INPUT_INVALID"
+    },
+    {
+      "known_failure": "nan_debt",
+      "baseline": "PROMOTE",
+      "candidate": "INPUT_INVALID"
+    },
+    {
+      "known_failure": "burden_increase_with_effect",
+      "baseline": "PROMOTE",
+      "candidate": "DRIVER_REGRESSION"
+    }
+  ],
+  "comparison_scope": "Synthetic regression cases, not held-out measurements of live process quality.",
+  "historical_files_preserved": [
+    "omega_shadow_fixtures_v0.json",
+    "shadow_results/p0003_distribution_shadow_v0.json"
+  ],
+  "secret_scan": {
+    "families": 6,
+    "file_count": 40,
+    "hits": [],
+    "scope": "Tracked branch files and proposed repair files; pattern scan, not an exhaustive secret audit."
+  },
+  "paired_held_out_trial_performed": false,
+  "real_human_burden_measurement": null,
+  "experiment_promotion": "HOLD",
+  "canonical_tests_performed": false,
+  "canonical_head_changed": false
+}
