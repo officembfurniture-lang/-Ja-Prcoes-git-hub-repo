@@ -197,12 +197,15 @@ jobs:
           assert probe['queue_sha256'] == sha256(Path('/tmp/value-engine-triage-queue.ndjson').read_bytes()).hexdigest()
           assert probe['queue_count'] == summary['verify_queue_total']
           assert probe['prior_feedback_status'] in (
-              'NOT_CONFIGURED', 'USED', 'INVALID_FALLBACK_TO_FRESH_GET')
+              'NOT_CONFIGURED', 'SUPPRESSION_APPLIED',
+              'VALID_NO_SUPPRESSION', 'INVALID_FALLBACK_TO_FRESH_GET')
           assert isinstance(probe['recent_readbacks_skipped'], list)
           assert probe['eligible_after_recent_cooldown'] >= 0
           assert probe['eligible_after_recent_cooldown'] + len(probe['recent_readbacks_skipped']) == probe['eligible_unique_urls']
           assert len({x['queue_rank'] for x in probe['recent_readbacks_skipped']}) == len(probe['recent_readbacks_skipped'])
-          if probe['prior_feedback_status'] != 'USED':
+          if probe['prior_feedback_status'] == 'SUPPRESSION_APPLIED':
+              assert len(probe['recent_readbacks_skipped']) > 0
+          else:
               assert probe['recent_readbacks_skipped'] == []
           assert 0 <= probe['attempted'] <= 3
           assert 0 <= probe['results'] <= 3
