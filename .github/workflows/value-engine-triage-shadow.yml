@@ -58,6 +58,8 @@ jobs:
           set -euo pipefail
           git checkout --detach "$SOURCE_COMMIT"
           test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+      - name: Validate exact sensor input archive before classification
+        run: python3 value-engine/validate.py
       - name: Unit tests
         working-directory: value-engine
         run: python3 -m unittest -v test_triage.py
