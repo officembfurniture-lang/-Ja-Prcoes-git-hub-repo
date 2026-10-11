@@ -43,7 +43,7 @@ def validate_draft(draft: dict[str, Any]) -> None:
         raise ValueError("measurement draft must be an object")
     _reject_non_finite(draft, "draft")
     for field in ("id", "question", "hypothesis", "expires_at"):
-        if not str(draft.get(field, "")).strip():
+        if not isinstance(draft.get(field), str) or not draft[field].strip():
             raise ValueError(f"measurement field {field} cannot be empty")
     try:
         expiry = datetime.fromisoformat(draft["expires_at"].replace("Z", "+00:00"))
@@ -73,9 +73,18 @@ def validate_draft(draft: dict[str, Any]) -> None:
         raise ValueError("a dependent variable is required")
 
     measurement = draft.get("measurement", {})
-    source_ref = str(measurement.get("source_ref", ""))
-    if urlparse(source_ref).scheme not in {"https", "dataset", "metric", "artifact"}:
-        raise ValueError("measurement source_ref must use an auditable scheme")
+    source_ref = measurement.get("source_ref")
+    if not isinstance(source_ref, str) or not source_ref or any(c.isspace() for c in source_ref):
+        raise ValueError("measurement source_ref must be a non-empty provenance URL")
+    try:
+        parsed = urlparse(source_ref)
+        if (parsed.scheme not in {"https", "dataset", "metric", "artifact"}
+                or (parsed.scheme == "https" and (not parsed.hostname or parsed.username is not None
+                                                       or parsed.password is not None))
+                or (parsed.scheme != "https" and not (parsed.netloc or parsed.path))):
+            raise ValueError("measurement source_ref must be an addressable provenance reference")
+    except ValueError as exc:
+        raise ValueError("measurement source_ref is invalid") from exc
     sample_count = measurement.get("sample_count")
     if type(sample_count) is not int or sample_count < 2:
         raise ValueError("measurement sample_count must be an integer of at least two")
