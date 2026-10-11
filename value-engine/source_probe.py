@@ -57,7 +57,7 @@ def load_queue(path: Path) -> list[dict]:
 
 def probe(queue: Path, output: Path, summary: Path, *,
           limit: int = MAX_ISSUES, at: datetime | None = None,
-          rotation: int = 0,
+          rotation: int = 0, prior_bundle: Path | None = None,
           fetcher: Callable[[str, str | None], dict] = github_issue_readback,
           token: str | None = None) -> dict:
     if not (1 <= limit <= MAX_ISSUES):
@@ -90,6 +90,33 @@ def probe(queue: Path, output: Path, summary: Path, *,
         eligible.append((rank, row))
         eligible_urls.add(url)
 
+    # A previous trusted workflow artifact can temporarily de-prioritize
+    # already-read source revisions, freeing scarce GET slots for new sources.
+    # Invalid/missing prior inputs fail OPEN to fresh GETs, never authorize work.
+    prior_feedback_status = "NOT_CONFIGURED"
+    prior_feedback_error_type = None
+    skipped_recent: list[dict] = []
+    if prior_bundle is not None:
+        try:
+            from readback_cooldown import recent_readback_suppressions
+            skipped = recent_readback_suppressions(prior_bundle, at or
+                                                   datetime.now(timezone.utc), eligible)
+            eligible_now = []
+            for rank, row in eligible:
+                previous_status = skipped.get(row["url"])
+                if previous_status is None:
+                    eligible_now.append((rank, row))
+                else:
+                    skipped_recent.append({
+                        "queue_rank": rank,
+                        "prior_status": previous_status,
+                    })
+            eligible = eligible_now
+            prior_feedback_status = "USED"
+        except (ValueError, KeyError, TypeError, OSError, UnicodeError,
+                json.JSONDecodeError, OverflowError) as exc:
+            prior_feedback_status = "INVALID_FALLBACK_TO_FRESH_GET"
+            prior_feedback_error_type = type(exc).__name__
     tail = eligible[1:]
     offset = (rotation * (limit - 1)) % len(tail) if tail else 0
     ordered = eligible[:1] + tail[offset:] + tail[:offset]
@@ -174,7 +201,11 @@ def probe(queue: Path, output: Path, summary: Path, *,
         "readback_at": observed_at,
         "limit": limit,
         "queue_count": len(rows),
-        "eligible_unique_urls": len(eligible),
+        "eligible_unique_urls": len(eligible) + len(skipped_recent),
+        "eligible_after_recent_cooldown": len(eligible),
+        "recent_readbacks_skipped": skipped_recent,
+        "prior_feedback_status": prior_feedback_status,
+        "prior_feedback_error_type": prior_feedback_error_type,
         "rotation": rotation,
         "rotation_offset": offset,
         "selected_queue_ranks": [r["queue_rank"] for r in receipts],
@@ -198,10 +229,13 @@ def main() -> int:
     parser.add_argument("--summary", type=Path, required=True)
     parser.add_argument("--limit", type=int, default=MAX_ISSUES)
     parser.add_argument("--rotation", type=int, default=0,
-                        help="Deterministic readback rotation counter; does not change rank 1")
+                        help="Deterministic readback rotation counter")
+    parser.add_argument("--prior-bundle", type=Path, default=None,
+                        help="Optional previous trusted successful main workflow artifact directory")
     args = parser.parse_args()
     result = probe(args.queue, args.output, args.summary, limit=args.limit,
-                   rotation=args.rotation, token=os.environ.get("GITHUB_TOKEN"))
+                   rotation=args.rotation, prior_bundle=args.prior_bundle,
+                   token=os.environ.get("GITHUB_TOKEN"))
     print(json.dumps(result, sort_keys=True))
     return 0
 

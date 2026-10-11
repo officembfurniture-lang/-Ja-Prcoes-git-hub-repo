@@ -222,6 +222,36 @@ malformed search records, and continued capture of normal issue entries.
 Passing these tests means that the new code rejects the simulated failure
 modes; it does not prove immunity against all network or API compromise.
 
+## Cross-run readback feedback with bounded retry cooldown (2026-10-11)
+
+The next triage cycle previously received **no** prior source-readback decisions:
+the highest-ranked GitHub issue could consume one of just three GETs again and
+again, including after a recent direct source readback had already established
+its state. In each run, the workflow now *optionally* downloads the artifact
+from the most recent **successful main-branch `workflow_run` triage** via
+read-only `actions:read`. PR-produced artifacts are excluded from feedback;
+no external source is contacted by this retrieval.
+
+`readback_cooldown.py` checks the prior queue bytes against the prior
+source-probe summary SHA-256, bound original ranks/URLs/fingerprints, time,
+zero authority flags and each GET receipt. Only a **matching unchanged source
+revision** may be temporarily deferred: previously read OPEN sources for
+at most 2 hours, CLOSED sources for at most 6 hours, and inaccessible
+HTTP 403/404/410 sources for at most 2 hours. Remaining eligible sources
+are considered at the existing max-three-GET budget. The receipt summary
+reports original queue ranks skipped, previous observation class, effective
+eligible count and whether optional feedback was usable.
+
+These are **retry decisions, not persistent source-state claims**.
+A 404 does not mean a source is closed; a previously closed issue may reopen;
+and source content changing produces a new revision/fingerprint eligible
+for immediate readback. Expired feedback causes fresh GETs again. Missing,
+unusable, future-dated or unbound previous artifacts fall back to ordinary
+current GET selection instead of blocking the pipeline or elevating authority.
+All current readbacks remain non-authoritative. This is an evidence-based
+bounded feedback mechanism, **not** self-modifying model parameters,
+verification, new revenue, or permission for third-party engagement.
+
 ## Reusing bounded fresh source evidence without new API calls
 
 The source readback `GET` already fetches the live GitHub issue title and
