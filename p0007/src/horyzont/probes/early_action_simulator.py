@@ -65,6 +65,8 @@ def simulate(payload: dict[str, Any]) -> dict[str, Any]:
         ) + (action_cost if action else 0.0)
         baseline_total += baseline_episode
         simulated_total += simulated_episode
+        if not (math.isfinite(baseline_total) and math.isfinite(simulated_total)):
+            raise ValueError("modeled totals overflowed the finite numeric range")
         if action and occurred:
             tp += 1
         elif action and not occurred:
@@ -114,7 +116,8 @@ def main() -> None:
     parser.add_argument("--output", help="Optional result JSON path")
     args = parser.parse_args()
     payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
-    rendered = json.dumps(simulate(payload), ensure_ascii=False, indent=2, sort_keys=True)
+    rendered = json.dumps(simulate(payload), ensure_ascii=False, indent=2, sort_keys=True,
+                          allow_nan=False)
     if args.output:
         Path(args.output).write_text(rendered + "\n", encoding="utf-8")
     else:
