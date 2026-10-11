@@ -113,8 +113,8 @@ def validate_sensor_history(state: dict, observations: list[dict],
                             ledger: list[dict], *, present: bool) -> None:
     """Cross-reconcile sensor receipts and captured records, without external claims.
 
-    A legacy synthetic validator fixture may intentionally omit BOTH sensor
-    stores; a production checkout with only one store is always rejected.
+    The production entrypoint requires both append-only stores. The pure
+    helper is separately testable with a synthetic in-memory history.
     """
     if not present:
         return
@@ -277,8 +277,8 @@ def main() -> int:
 
     observations_exist = (ROOT / "observations.ndjson").exists()
     ledger_exists = (ROOT / "run-ledger.ndjson").exists()
-    if observations_exist != ledger_exists:
-        fail("sensor observation and run-ledger stores must exist together")
+    if not observations_exist or not ledger_exists:
+        fail("both sensor observation and run-ledger stores are required")
     observations = validate_ndjson("observations.ndjson")
     ledger = validate_ndjson("run-ledger.ndjson")
     validate_sensor_history(state, observations, ledger, present=observations_exist)
