@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import sys
@@ -110,7 +111,8 @@ def validate_outcomes(rows: list[dict], counters: dict) -> None:
 
 
 def validate_sensor_history(state: dict, observations: list[dict],
-                            ledger: list[dict], *, present: bool) -> None:
+                            ledger: list[dict], *, present: bool,
+                            observation_bytes: bytes | None = None) -> None:
     """Cross-reconcile sensor receipts and captured records, without external claims.
 
     The production entrypoint requires both append-only stores. The pure
@@ -159,6 +161,23 @@ def validate_sensor_history(state: dict, observations: list[dict],
                 or last.get("refreshed_snapshots", 0)
                     != most_recent.get("refreshed_snapshots", 0)):
             fail("last sensor state does not reconcile with ledger receipt")
+
+        # Backward-compatible with completed pre-checkpoint cycles. Once a
+        # sensor emits a digest it must be present in both receipts and match
+        # the exact byte stream that triage will later read.
+        state_digest = last.get("observations_sha256")
+        ledger_digest = most_recent.get("observations_sha256")
+        if state_digest is not None or ledger_digest is not None:
+            if (not isinstance(state_digest, str)
+                    or not isinstance(ledger_digest, str)
+                    or len(state_digest) != 64
+                    or any(ch not in "0123456789abcdef" for ch in state_digest)
+                    or state_digest != ledger_digest):
+                fail("observation digest missing, malformed or inconsistent")
+            if observation_bytes is None:
+                fail("observation bytes required for content-anchor validation")
+            if hashlib.sha256(observation_bytes).hexdigest() != ledger_digest:
+                fail("observation content checksum differs from last completed cycle")
 
 
 def active_payment_liability(state: dict) -> bool:
@@ -281,7 +300,10 @@ def main() -> int:
         fail("both sensor observation and run-ledger stores are required")
     observations = validate_ndjson("observations.ndjson")
     ledger = validate_ndjson("run-ledger.ndjson")
-    validate_sensor_history(state, observations, ledger, present=observations_exist)
+    validate_sensor_history(
+        state, observations, ledger, present=observations_exist,
+        observation_bytes=(ROOT / "observations.ndjson").read_bytes(),
+    )
     validate_outcomes(validate_ndjson("outcomes.ndjson"), counters)
     print("VALUE_ENGINE invariants: OK")
     return 0
