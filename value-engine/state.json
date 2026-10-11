@@ -2,7 +2,7 @@
   "engine": "VALUE_ENGINE_v2",
   "schema_version": 2,
   "mode": "shadow_until_route_verified",
-  "cycle": 239,
+  "cycle": 240,
   "phase": "IDLE",
   "lease": {
     "cycle_id": null,
@@ -19,7 +19,7 @@
     "cost_savings": []
   },
   "counters": {
-    "observed": 9969,
+    "observed": 10012,
     "verified": 2,
     "selected": 2,
     "produced": 2,
@@ -42,30 +42,30 @@
     "ledger_path": "bounty-engine/ledger.ndjson"
   },
   "last_cycle_result": {
-    "cycle_id": "cycle-239-38171343921",
-    "at": "2026-10-11T20:14:28Z",
-    "new_observations": 36,
+    "cycle_id": "cycle-240-38185103409",
+    "at": "2026-10-11T23:39:46Z",
+    "new_observations": 43,
     "refreshed_snapshots": 0,
-    "observations_sha256": "783b537a3cebdde20d813eefffb0391bf974ee53904dbec1aede2e3a651545ba",
+    "observations_sha256": "1b73a5d6f2d25fd9ad9428fcbf272bf8e8c22ec4c8c31757630b39c2d0d4cae6",
     "direct_readback_attempts": 3,
     "direct_readback_captures": 0,
     "direct_readback_closed": 0,
     "source_errors": [
       {
         "source": "github_direct_readback",
-        "url": "https://github.com/woahwhattheheck/commons/issues/19313",
+        "url": "https://github.com/kushBitxHQ/kushbitx-sdk/issues/1",
         "error": "HTTPError",
         "http_status": 404
       },
       {
         "source": "github_direct_readback",
-        "url": "https://github.com/celteducational21-svg/agentic-bounty-hunter/issues/1",
+        "url": "https://github.com/woahwhattheheck/commons/issues/14250",
         "error": "HTTPError",
         "http_status": 404
       },
       {
         "source": "github_direct_readback",
-        "url": "https://github.com/Scottcjn/Rustchain/issues/165",
+        "url": "https://github.com/Scottcjn/rustchain-bounties/issues/1112",
         "error": "HTTPError",
         "http_status": 404
       }
