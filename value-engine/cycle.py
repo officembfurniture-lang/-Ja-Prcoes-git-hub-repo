@@ -336,6 +336,12 @@ def main() -> int:
                            "http_status": exc.code if isinstance(exc, urllib.error.HTTPError) else None})
 
     append_ndjson(OBS, new_records + refreshed_records)
+    # Bind the complete persisted observation bytes to this sensor receipt.
+    # This detects same-count edits, truncations and reorderings on readback,
+    # but is not an external immutable timestamp or cryptographic signature.
+    observations_sha256 = hashlib.sha256(
+        OBS.read_bytes() if OBS.exists() else b""
+    ).hexdigest()
     counters = state.setdefault("counters", {})
     counters["observed"] = int(counters.get("observed", 0)) + len(new_records) + len(refreshed_records)
     state["phase"] = "IDLE"
@@ -346,6 +352,7 @@ def main() -> int:
         "at": current_iso,
         "new_observations": len(new_records),
         "refreshed_snapshots": len(refreshed_records),
+        "observations_sha256": observations_sha256,
         "direct_readback_attempts": direct_attempts,
         "direct_readback_captures": direct_captures,
         "direct_readback_closed": direct_closed,
@@ -362,6 +369,7 @@ def main() -> int:
         "result": "SENSE_COMPLETE",
         "new_observations": len(new_records),
         "refreshed_snapshots": len(refreshed_records),
+        "observations_sha256": observations_sha256,
         "direct_readback_attempts": direct_attempts,
         "direct_readback_captures": direct_captures,
         "direct_readback_closed": direct_closed,
