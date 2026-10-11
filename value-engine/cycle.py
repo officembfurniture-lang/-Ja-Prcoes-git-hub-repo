@@ -95,6 +95,42 @@ def existing_snapshots() -> dict[str, datetime | None]:
     return latest
 
 
+class GitHubAPIRedirectOnly(urllib.request.HTTPRedirectHandler):
+    """Prevent authenticated GitHub requests from following cross-origin URLs."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        parsed = urllib.parse.urlsplit(newurl)
+        # Strict canonical host comparison excludes userinfo, alternate ports,
+        # lookalike domains, insecure redirects and hostile URL authorities.
+        if parsed.scheme != "https" or parsed.netloc != "api.github.com":
+            raise urllib.error.HTTPError(
+                req.full_url, code, "unsafe_github_api_redirect", headers, fp
+            )
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+GITHUB_API_OPENER = urllib.request.build_opener(GitHubAPIRedirectOnly())
+
+
+def valid_issue_search_hit(item: object) -> bool:
+    """Only actual GitHub issue search hits, never PRs or malformed mirrors."""
+    if not isinstance(item, dict) or "pull_request" in item:
+        return False
+    url = item.get("html_url")
+    match = ISSUE_URL_RE.fullmatch(url) if isinstance(url, str) else None
+    return (
+        match is not None
+        and type(item.get("id")) is int
+        and item["id"] > 0
+        and type(item.get("number")) is int
+        and item["number"] == int(match.group(3))
+        and isinstance(item.get("updated_at"), str)
+        and isinstance(item.get("title"), str)
+        and isinstance(item.get("body"), (str, type(None)))
+        and item.get("state") in ("open", "closed")
+    )
+
+
 def github_search(query: str, token: str | None) -> list[dict]:
     params = urllib.parse.urlencode({"q": query, "sort": "updated", "order": "desc", "per_page": 10})
     url = f"https://api.github.com/search/issues?{params}"
@@ -108,7 +144,7 @@ def github_search(query: str, token: str | None) -> list[dict]:
         if use_token and token:
             headers["Authorization"] = f"Bearer {token}"
         req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req, timeout=20) as response:
+        with GITHUB_API_OPENER.open(req, timeout=20) as response:
             return json.loads(response.read().decode("utf-8"))
 
     try:
@@ -136,7 +172,7 @@ def github_issue_readback(url: str, token: str | None) -> dict:
         if use_token and token:
             headers["Authorization"] = f"Bearer {token}"
         req = urllib.request.Request(endpoint, headers=headers)
-        with urllib.request.urlopen(req, timeout=20) as response:
+        with GITHUB_API_OPENER.open(req, timeout=20) as response:
             result = json.loads(response.read().decode("utf-8"))
         if not isinstance(result, dict):
             raise ValueError("invalid_issue_response")
@@ -280,6 +316,8 @@ def main() -> int:
         for query in source.get("queries", []):
             try:
                 for item in github_search(query, token):
+                    if not valid_issue_search_hit(item):
+                        continue
                     record = normalize(item, query, current_iso)
                     search_seen_urls.add(str(record.get("url") or ""))
                     fingerprint = record["fingerprint"]

@@ -6,6 +6,8 @@ from __future__ import annotations
 
 import contextlib
 import io
+import urllib.error
+import urllib.request
 import json
 import tempfile
 import unittest
@@ -22,6 +24,7 @@ START = datetime(2026, 10, 1, 12, 0, tzinfo=timezone.utc)
 def source_item() -> dict:
     return {
         "id": 320,
+        "number": 320,
         "html_url": "https://github.com/example/repo/issues/320",
         "updated_at": "2026-10-01T11:00:00Z",
         "created_at": "2026-10-01T10:00:00Z",
@@ -114,6 +117,74 @@ class SnapshotRefreshTests(unittest.TestCase):
         self.assertEqual(state["last_cycle_result"]["refreshed_snapshots"], 0)
         self.assertEqual(ledger[0]["new_observations"], 0)
 
+    def test_authenticated_github_api_redirect_cannot_leak_token(self):
+        request = urllib.request.Request(
+            "https://api.github.com/repos/example/repo/issues/320",
+            headers={"Authorization": "Bearer SYNTHETIC_SECRET"},
+        )
+        handler = cycle.GitHubAPIRedirectOnly()
+        for target in (
+            "https://attacker.example/collect",
+            "http://api.github.com/repos/example/repo/issues/320",
+            "https://api.github.com.attacker.example/collect",
+            "https://username:password@api.github.com/collect",
+            "https://api.github.com:8443/repos/example/repo/issues/320",
+            "https://127.0.0.1/collect",
+        ):
+            with self.subTest(target=target):
+                for status in (301, 302, 307):
+                    with self.assertRaisesRegex(
+                        urllib.error.HTTPError, "unsafe_github_api_redirect"
+                    ):
+                        handler.redirect_request(request, None, status,
+                                                 "Redirect", {}, target)
+        approved = handler.redirect_request(
+            request, None, 301, "Moved", {},
+            "https://api.github.com/repos/example/newrepo/issues/320")
+        self.assertEqual(approved.host, "api.github.com")
+        self.assertEqual(approved.get_header("Authorization"),
+                         "Bearer SYNTHETIC_SECRET")
+
+    def test_authenticated_search_and_direct_readback_use_guarded_opener(self):
+        seen = []
+        def fake_open(request, timeout):
+            seen.append((request.full_url, request.get_header("Authorization"), timeout))
+            if "/search/issues" in request.full_url:
+                result = {"items": [source_item()]}
+            else:
+                result = {"html_url": source_item()["html_url"], "number": 320,
+                          "id": 320, "state": "open", "title": "Synthetic test",
+                          "body": None, "updated_at": "2026-10-01T11:00:00Z"}
+            return io.BytesIO(json.dumps(result).encode("utf-8"))
+
+        with patch.object(cycle.GITHUB_API_OPENER, "open", side_effect=fake_open):
+            found = cycle.github_search("test", "NOT_REAL_TOKEN")
+            direct = cycle.github_issue_readback(source_item()["html_url"],
+                                                 "NOT_REAL_TOKEN")
+        self.assertEqual(found[0]["number"], 320)
+        self.assertEqual(direct["number"], 320)
+        self.assertEqual(len(seen), 2)
+        self.assertTrue(all(item[0].startswith("https://api.github.com/")
+                            for item in seen))
+        self.assertTrue(all(item[1] == "Bearer NOT_REAL_TOKEN" for item in seen))
+
+    def test_search_rejects_prs_and_invalid_hits_without_losing_real_issues(self):
+        valid = source_item()
+        malicious = [
+            dict(valid, html_url="https://evil.example/exfiltrate"),
+            dict(valid, pull_request={"url": "https://api.github.com/example"}),
+            dict(valid, number=321),
+            dict(valid, id=True),
+            dict(valid, state="not-a-state"),
+            {"html_url": None, "id": 42},
+        ]
+        state, rows, ledger = self.execute(
+            START, response=malicious + [valid])
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["url"], valid["html_url"])
+        self.assertEqual(state["last_cycle_result"]["new_observations"], 1)
+        self.assertEqual(ledger[0]["new_observations"], 1)
+
     def test_unseen_revision_is_new_not_refresh(self):
         state, rows, ledger = self.execute(START)
         self.assertEqual(len(rows), 1)
@@ -191,7 +262,7 @@ class SnapshotRefreshTests(unittest.TestCase):
         observed = []
         available = {}
         for n in range(1, 6):
-            record = dict(source_item(), id=n,
+            record = dict(source_item(), id=n, number=n,
                           html_url=f"https://github.com/example/repo/issues/{n}")
             available[record["html_url"]] = record
             observed.append(cycle.normalize(record, "one", cycle.iso(START)))
