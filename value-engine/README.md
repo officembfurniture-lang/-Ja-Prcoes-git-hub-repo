@@ -140,6 +140,26 @@ it does not show that an independently controlled actor accepted,
 funded, bought, used, or paid for anything. Financial, delivery, safety
 and consent gates remain separate prior to execution.
 
+## Content-addressed sensor checkpoint (forward-only)
+
+Starting with the first sensor cycle using this revision, `cycle.py` saves the
+SHA-256 of the **complete byte content** of `observations.ndjson` in both
+`state.last_cycle_result.observations_sha256` and that cycle's
+`run-ledger.ndjson` receipt. This is in addition to the existing exact-cycle
+count reconciliation. The validator rejects same-count payload substitution,
+changed row order or serialization, truncation, or mismatched in-repository
+digest declarations. The triage workflow validates the pinned sensor checkout
+*before* classifying or independently re-reading queue candidates.
+
+Old, historically valid cycles without a digest remain readable. The next
+new sensor cycle becomes the first full-archive checkpoint; earlier history is
+covered by that archive's current bytes but has **not** acquired externally
+immutable archival proof. This SHA-256 is an internal error-detection anchor,
+**not** a signature, WORM storage, proof that the original sources were honest,
+or independent confirmation of any payment. Anyone able to rewrite both files
+and their checksums could forge a new consistent history; independent
+external anchoring would require a distinct separately authorized mechanism.
+
 ## Three-way append-only sensor history integrity
 
 Every VALUE_ENGINE validation now checks the three files as one accounting
