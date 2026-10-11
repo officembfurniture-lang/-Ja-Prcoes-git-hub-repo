@@ -134,7 +134,7 @@ class CrossRunFeedbackTests(unittest.TestCase):
         original = self.old_readbacks.read_bytes()
         old = [json.loads(s) for s in original.splitlines()]
         attempts = [
-            ("altered rank", [{"queue_rank": 99, **row} for row in old]),
+            ("altered rank", [dict(row, queue_rank=99) for row in old]),
             ("claimed authority", [dict(old[0], authorization_to_execute=True)] + old[1:]),
         ]
         for label, values in attempts:
