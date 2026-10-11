@@ -158,6 +158,30 @@ the identity of distinct offers, or payment. Observations may include repeated
 readbacks of the same source revision. `counters.observed` is the number of
 appended snapshots, not verified or uniquely funded opportunities.
 
+## GitHub API network boundary and hostile-input tests
+
+The public sensor and the downstream source readback must retain a strict
+network origin boundary despite receiving URLs and content from third-party
+GitHub issues. Authenticated urllib requests previously inherited Python's
+default HTTP redirect handler, which copies the `Authorization` header onto
+a redirected Request. An HTTP 30x Location to another host could therefore
+carry the Actions token outside the intended API origin. This is a **code-level
+risk**, not evidence that a credential was leaked in any actual run.
+
+The sensor now uses an opener whose redirect handler accepts only canonical
+`https://api.github.com` redirects. A redirect to HTTP, another host, an
+alternate port, or an authority with embedded credentials raises an HTTP
+error and records the fetch as unsuccessful. Existing bounded anonymous
+fallback for 401/403 responses is preserved. Search results are filtered to
+well-shaped, actual issue URLs with matching issue numbers, not GitHub pull
+requests or arbitrary links. Existing data and verified outcomes are untouched.
+
+Offline adversarial regressions test token-bearing cross-host 301/302/307
+redirects, legitimate same-origin redirects, auth use by both fetch routes,
+malformed search records, and continued capture of normal issue entries.
+Passing these tests means that the new code rejects the simulated failure
+modes; it does not prove immunity against all network or API compromise.
+
 ## Exact-run sensor to triage handoff
 
 On `workflow_run`, triage must not silently analyze an unrelated moving
