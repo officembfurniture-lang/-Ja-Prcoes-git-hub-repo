@@ -14,6 +14,7 @@ from collections import Counter
 from pathlib import Path
 
 from cycle import ISSUE_URL_RE
+from triage import classify, parse_time
 
 SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
 MAX_GETS = 3
@@ -28,6 +29,13 @@ REVIEW_POLICY = {
     "READBACK_CLOSED": ("HOLD_CLOSED_SOURCE", "Do not pursue this closed issue as an open offer."),
     "READBACK_FAILED": ("HOLD_SOURCE_UNCONFIRMED", "Retry or inspect source; failure is not proof of closure."),
 }
+# These are conservative stop/hold reasons from the established triage
+# classifier, not external authorization decisions or funding verification.
+CURRENT_SOURCE_HOLDS = frozenset({
+    "HOLD_START_PROHIBITED", "HOLD_CAPITAL_REQUIRED", "HOLD_HUMAN_GATE",
+    "HOLD_DEPENDENCIES", "HOLD_REWARD_UNCONFIRMED", "HOLD_PRIMARY_SOURCE",
+    "HOLD_SOURCE_CLOSED",
+})
 
 
 def sha256(raw: bytes) -> str:
@@ -116,6 +124,44 @@ def review(queue_data: bytes, receipt_data: bytes, probe_data: bytes) -> tuple[l
             raise ValueError("readback source identity does not match bound queue")
 
         source_status = receipt.get("status")
+        current_policy = None
+        current_risks = []
+        if source_status in ("READBACK_OPEN", "READBACK_CLOSED"):
+            title = receipt.get("source_title")
+            excerpt = receipt.get("source_body_excerpt")
+            truncated = receipt.get("source_body_truncated")
+            updated_at = receipt.get("source_updated_at")
+            if (not isinstance(title, str) or not title.strip() or len(title) > 1000
+                    or not isinstance(excerpt, str) or len(excerpt) > 4000
+                    or type(truncated) is not bool
+                    or not isinstance(updated_at, str)
+                    or parse_time(updated_at) is None
+                    or receipt.get("source_title_changed") is not (title != queued.get("title"))
+                    or receipt.get("source_updated_at_changed") is not (
+                        updated_at != queued.get("updated_at")
+                    )):
+                raise ValueError("readback current source text and drift flags invalid")
+            if not truncated:
+                # The complete body fits within the captured excerpt: verify
+                # that the reported content hash matches the text being used
+                # for source-risk reclassification. Truncated bodies remain
+                # explicitly unresolved, never interpreted as risk-free.
+                source_hash = hashlib.sha256(json.dumps({
+                    "number": int(ISSUE_URL_RE.fullmatch(url).group(3)),
+                    "html_url": url,
+                    "state": "open" if source_status == "READBACK_OPEN" else "closed",
+                    "title": title,
+                    "body": excerpt,
+                    "updated_at": updated_at,
+                }, ensure_ascii=False, sort_keys=True,
+                   separators=(",", ":")).encode("utf-8")).hexdigest()
+                if source_hash != receipt.get("source_content_sha256"):
+                    raise ValueError("source text inconsistent with content digest")
+        else:
+            if (receipt.get("source_title") is not None
+                    or receipt.get("source_body_excerpt") is not None
+                    or receipt.get("source_body_truncated") is not None):
+                raise ValueError("failed readback cannot supply current source text")
         if source_status == "READBACK_OPEN":
             if (receipt.get("source_state") != "open"
                     or not isinstance(receipt.get("source_title_changed"), bool)
@@ -123,7 +169,32 @@ def review(queue_data: bytes, receipt_data: bytes, probe_data: bytes) -> tuple[l
                     or not isinstance(receipt.get("source_updated_at"), str)
                     or SHA256_RE.fullmatch(str(receipt.get("source_content_sha256"))) is None):
                 raise ValueError("open readback missing valid source snapshot")
-            if receipt["source_title_changed"] or receipt["source_updated_at_changed"]:
+            observed_at = parse_time(receipt["readback_at"])
+            if observed_at is None:
+                raise ValueError("readback timestamp must be timezone-aware")
+            current = classify({
+                "url": url,
+                "title": receipt["source_title"],
+                "body_excerpt": receipt["source_body_excerpt"],
+                "updated_at": receipt["source_updated_at"],
+                "detected_at": receipt["readback_at"],
+                "source_state": "open",
+            }, observed_at)
+            current_policy = current["disposition"]
+            current_risks = current["risks"]
+            if current_policy in CURRENT_SOURCE_HOLDS:
+                decision = current_policy
+                next_step = (
+                    "Current source excerpt contains a conservative stop/hold "
+                    "signal. Reconcile full terms before any further work."
+                )
+            elif receipt["source_body_truncated"]:
+                decision = "RE_TRIAGE_TRUNCATED_SOURCE"
+                next_step = (
+                    "Read remaining original issue body before any full review; "
+                    "the 4000-character excerpt cannot establish absence of risk."
+                )
+            elif receipt["source_title_changed"] or receipt["source_updated_at_changed"]:
                 decision = "RE_TRIAGE_CHANGED_SOURCE"
                 next_step = "Reassess updated issue terms against a fresh observation before VERIFY."
             else:
@@ -150,6 +221,9 @@ def review(queue_data: bytes, receipt_data: bytes, probe_data: bytes) -> tuple[l
             "fingerprint": queued["fingerprint"],
             "readback_at": receipt["readback_at"],
             "source_content_sha256": receipt.get("source_content_sha256"),
+            "source_body_truncated": receipt.get("source_body_truncated"),
+            "current_source_policy": current_policy,
+            "current_source_risks": current_risks,
             "readback_status": source_status,
             "review_decision": decision,
             "next_step": next_step,

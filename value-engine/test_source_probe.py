@@ -76,6 +76,11 @@ class SourceProbeTests(unittest.TestCase):
         self.assertEqual(receipt["source_state"], "open")
         self.assertEqual(receipt["comment_count"], 10)
         self.assertEqual(receipt["source_updated_at_changed"], True)
+        self.assertEqual(receipt["source_title"], "Bounty $95 task 1")
+        self.assertEqual(
+            receipt["source_body_excerpt"],
+            "Funded claim! This text is only an assertion in the source.")
+        self.assertIs(receipt["source_body_truncated"], False)
         self.assertRegex(receipt["source_content_sha256"], r"^[a-f0-9]{64}$")
         for key, value in source_probe.NO_AUTHORITY.items():
             self.assertEqual(receipt[key], value, key)
@@ -91,6 +96,16 @@ class SourceProbeTests(unittest.TestCase):
         self.assertEqual(row["status"], "READBACK_CLOSED")
         self.assertEqual(row["source_state"], "closed")
         self.assertFalse(row["primary_source_verified"])
+
+    def test_long_body_receipt_is_bounded_and_not_claimed_complete(self):
+        self.write(queue_item())
+        source = live_issue(body=("public source information " * 220) + "do not start")
+        self.run_probe(lambda url, token: source)
+        row = self.receipts()[0]
+        self.assertEqual(len(row["source_body_excerpt"]), 4000)
+        self.assertIs(row["source_body_truncated"], True)
+        self.assertEqual(row["status"], "READBACK_OPEN")
+        self.assertFalse(row["authorization_to_execute"])
 
     def test_changed_body_or_title_has_new_canonical_hash(self):
         self.write(queue_item())

@@ -222,6 +222,31 @@ malformed search records, and continued capture of normal issue entries.
 Passing these tests means that the new code rejects the simulated failure
 modes; it does not prove immunity against all network or API compromise.
 
+## Reusing bounded fresh source evidence without new API calls
+
+The source readback `GET` already fetches the live GitHub issue title and
+body but used to discard the body before `readback_review.py`. This froze
+source-risk recognition: even when a changed issue now explicitly prohibited
+starting work or required depositing funds, the downstream stage emitted only
+`RE_TRIAGE_CHANGED_SOURCE` without using the available text.
+
+The readback receipt now retains the current source title, at most the first
+4000 characters of its public body, and an explicit truncation flag. The
+existing readback decision stage checks the current source fields, verifies
+the hash against those fields **when the entire body fits in the excerpt**,
+and applies the same conservative hold rules used in `triage.py`. Changed
+issue text that states a start prohibition, capital requirement, dependency,
+unconfirmed reward, human approval gate or non-primary offer is held as such
+in the current cycle — without spending another GET.
+
+This is **negative-evidence learning only**: a source claiming it is funded
+still cannot become verified or executable, and a shortened body cannot be
+treated as absence of constraints. The latter receives
+`RE_TRIAGE_TRUNCATED_SOURCE` unless an explicit hold is already visible in
+the excerpt. The SHA-256 of the original full source content remains in the
+receipt even when only the excerpt is stored. Reclassification does not
+modify historical sensor observations, funding flags or policy authority.
+
 ## Readback-to-decision boundary (advisory only)
 
 Read-only `readback_review.py` now binds the complete pre-VERIFY queue,
