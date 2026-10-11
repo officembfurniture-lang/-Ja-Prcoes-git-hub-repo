@@ -140,6 +140,24 @@ it does not show that an independently controlled actor accepted,
 funded, bought, used, or paid for anything. Financial, delivery, safety
 and consent gates remain separate prior to execution.
 
+## Exact-run sensor to triage handoff
+
+On `workflow_run`, triage must not silently analyze an unrelated moving
+`main` checkout while claiming to have processed the sensor run that triggered
+it. The read-only `sensor_handoff.py` resolves the **exact persisted sensor
+commit** in bounded `origin/main` state-file history using the trusted GitHub
+workflow-run ID. It requires agreement among state cycle ID, the last
+`SENSE_COMPLETE` ledger receipt, timestamps, error list and observation counts.
+If no matching, intact commit exists, the downstream job fails closed and emits
+no misleading queue artifact. It never creates or changes a Git ref.
+
+The triage job then checks out that immutable commit, runs triage and bounded
+source readback, and saves its checkout SHA together with the existing SHA-256
+artifact manifest. This guarantees matching **repository input provenance**,
+not independent proof of external reward, approval, payment or adoption.
+Manual/PR triage still evaluates its explicitly checked out revision and does
+not assert that it followed a sensor cycle.
+
 ## Concurrency and crash recovery
 
 Every active cycle holds a lease (`cycle_id`, owner, acquired/expires timestamps). A live lease causes a second scheduler to exit. Only an expired lease may be taken over. This allows redundant schedulers without duplicate work.
