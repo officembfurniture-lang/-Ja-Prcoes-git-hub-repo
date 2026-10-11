@@ -199,7 +199,7 @@ class ProbeBoundaryTests(unittest.TestCase):
             "tasks": [
                 {"id": "small", "power_kw": 1, "duration_slots": 1,
                  "earliest_slot": 0, "latest_end_slot": 3, "deferrable": True,
-                 "priority": 0},
+                 "priority": 1},
                 {"id": "large", "power_kw": 2, "duration_slots": 1,
                  "earliest_slot": 1, "latest_end_slot": 3, "deferrable": True,
                  "priority": 0},
