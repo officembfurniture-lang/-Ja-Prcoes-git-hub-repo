@@ -109,6 +109,58 @@ def validate_outcomes(rows: list[dict], counters: dict) -> None:
         fail("paid counter must match distinct PAID opportunity receipts")
 
 
+def validate_sensor_history(state: dict, observations: list[dict],
+                            ledger: list[dict], *, present: bool) -> None:
+    """Cross-reconcile sensor receipts and captured records, without external claims.
+
+    A legacy synthetic validator fixture may intentionally omit BOTH sensor
+    stores; a production checkout with only one store is always rejected.
+    """
+    if not present:
+        return
+    completed = 0
+    appended = 0
+    most_recent = None
+    for index, row in enumerate(ledger, 1):
+        label = f"run-ledger.ndjson:{index}"
+        result = row.get("result")
+        if result == "LEASE_BUSY":
+            continue  # An idle/blocked duplicate did not append observations.
+        if result != "SENSE_COMPLETE":
+            fail(f"{label}: unexpected sensor result {result!r}")
+        completed += 1
+        require_text(row.get("cycle_id"), f"{label}.cycle_id")
+        prefix = f"cycle-{completed}-"
+        if not row["cycle_id"].startswith(prefix) or row["cycle_id"] == prefix:
+            fail(f"{label}: missing or reordered completed sensor cycle")
+        for field in ("new_observations", "refreshed_snapshots"):
+            value = row.get(field, 0 if field == "refreshed_snapshots" else None)
+            if type(value) is not int or value < 0:
+                fail(f"{label}.{field} must be a non-negative integer")
+        if row.get("realized_value") != 0 or type(row.get("realized_value")) is not int:
+            fail(f"{label}: sensor must never record realized value")
+        appended += row["new_observations"] + row.get("refreshed_snapshots", 0)
+        most_recent = row
+
+    if completed != state["cycle"]:
+        fail("state.cycle must match completed run-ledger cycles")
+    if appended != len(observations):
+        fail("observation row count differs from append-only sensor ledger")
+    if appended != state["counters"]["observed"]:
+        fail("observed counter differs from append-only sensor ledger")
+
+    if most_recent is not None:
+        last = state.get("last_cycle_result")
+        require_object(last, "state.last_cycle_result")
+        if (last.get("cycle_id") != most_recent.get("cycle_id")
+                or last.get("at") != most_recent.get("at")
+                or last.get("source_errors") != most_recent.get("errors")
+                or last.get("new_observations") != most_recent.get("new_observations")
+                or last.get("refreshed_snapshots", 0)
+                    != most_recent.get("refreshed_snapshots", 0)):
+            fail("last sensor state does not reconcile with ledger receipt")
+
+
 def active_payment_liability(state: dict) -> bool:
     active = state.get("active_opportunity")
     return isinstance(active, dict) and (active.get("paid_work_commissioned") is True or active.get("financial_obligation_authorized") is True)
@@ -223,8 +275,13 @@ def main() -> int:
             if route.get("kind") not in kinds or route.get("selectable_for_execution") is False:
                 fail(f"{field} does not support execution: {active[field]}")
 
-    validate_ndjson("observations.ndjson")
-    validate_ndjson("run-ledger.ndjson")
+    observations_exist = (ROOT / "observations.ndjson").exists()
+    ledger_exists = (ROOT / "run-ledger.ndjson").exists()
+    if observations_exist != ledger_exists:
+        fail("sensor observation and run-ledger stores must exist together")
+    observations = validate_ndjson("observations.ndjson")
+    ledger = validate_ndjson("run-ledger.ndjson")
+    validate_sensor_history(state, observations, ledger, present=observations_exist)
     validate_outcomes(validate_ndjson("outcomes.ndjson"), counters)
     print("VALUE_ENGINE invariants: OK")
     return 0
