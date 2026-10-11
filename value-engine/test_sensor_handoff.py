@@ -58,6 +58,20 @@ class HandoffTests(unittest.TestCase):
         self.assertTrue(handoff.matches_sensor(
             matching_state(), matching_ledger(), RUN_ID))
 
+    def test_digest_anchor_must_match_across_state_and_ledger(self):
+        state = matching_state()
+        ledger = matching_ledger()
+        digest = "a" * 64
+        state["last_cycle_result"]["observations_sha256"] = digest
+        ledger["observations_sha256"] = digest
+        self.assertTrue(handoff.matches_sensor(state, ledger, RUN_ID))
+        for value in (None, "b" * 64, "bad", True):
+            with self.subTest(value=value):
+                changed = dict(ledger, observations_sha256=value)
+                self.assertFalse(handoff.matches_sensor(state, changed, RUN_ID))
+        no_digest_ledger = matching_ledger()
+        self.assertFalse(handoff.matches_sensor(state, no_digest_ledger, RUN_ID))
+
     def test_wrong_run_and_broken_reconciliation_fail_closed(self):
         self.assertFalse(handoff.matches_sensor(
             matching_state(), matching_ledger(), RUN_ID + 1))
