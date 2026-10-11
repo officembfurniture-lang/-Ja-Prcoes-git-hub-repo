@@ -80,7 +80,8 @@ class ShadowGateTests(unittest.TestCase):
 
     def test_invalid_or_unmatched_sensor_bytes_are_not_accepted(self):
         raw, state = bytes_and_state([observation(1)])
-        tampered = raw.replace(b"Bounty", b"FAKERY")
+        tampered = raw.replace(b"bounty", b"FAKERY")
+        self.assertNotEqual(tampered, raw, "tampering fixture must actually alter bytes")
         with self.assertRaisesRegex(ValueError, "do not match"):
             gate.trial(state, tampered, safe_evaluator, SOURCE_REVISION)
         changed = copy.deepcopy(state)
