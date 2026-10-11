@@ -2,7 +2,7 @@
   "engine": "VALUE_ENGINE_v2",
   "schema_version": 2,
   "mode": "shadow_until_route_verified",
-  "cycle": 233,
+  "cycle": 234,
   "phase": "IDLE",
   "lease": {
     "cycle_id": null,
@@ -19,7 +19,7 @@
     "cost_savings": []
   },
   "counters": {
-    "observed": 9723,
+    "observed": 9769,
     "verified": 2,
     "selected": 2,
     "produced": 2,
@@ -42,9 +42,9 @@
     "ledger_path": "bounty-engine/ledger.ndjson"
   },
   "last_cycle_result": {
-    "cycle_id": "cycle-233-38091601897",
-    "at": "2026-10-10T22:29:31Z",
-    "new_observations": 42,
+    "cycle_id": "cycle-234-38103192809",
+    "at": "2026-10-11T01:50:56Z",
+    "new_observations": 46,
     "refreshed_snapshots": 0,
     "direct_readback_attempts": 3,
     "direct_readback_captures": 0,
@@ -52,19 +52,19 @@
     "source_errors": [
       {
         "source": "github_direct_readback",
-        "url": "https://github.com/kushBitxHQ/kushbitx-sdk/issues/1",
+        "url": "https://github.com/kwizzlesurp10-ctrl/x402-mcp/issues/494",
         "error": "HTTPError",
         "http_status": 404
       },
       {
         "source": "github_direct_readback",
-        "url": "https://github.com/woahwhattheheck/commons/issues/14250",
+        "url": "https://github.com/Scottcjn/rustchain-bounties/issues/16248",
         "error": "HTTPError",
         "http_status": 404
       },
       {
         "source": "github_direct_readback",
-        "url": "https://github.com/Scottcjn/rustchain-bounties/issues/1112",
+        "url": "https://github.com/Scottcjn/rustchain-bounties/issues/16251",
         "error": "HTTPError",
         "http_status": 404
       }
