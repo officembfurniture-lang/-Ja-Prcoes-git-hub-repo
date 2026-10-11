@@ -140,6 +140,24 @@ it does not show that an independently controlled actor accepted,
 funded, bought, used, or paid for anything. Financial, delivery, safety
 and consent gates remain separate prior to execution.
 
+## Three-way append-only sensor history integrity
+
+Every VALUE_ENGINE validation now checks the three files as one accounting
+boundary: `state.json`, `run-ledger.ndjson` and `observations.ndjson`.
+All completed `SENSE_COMPLETE` ledger cycles must be sequential, with
+non-negative integer new/refresh counts. Their combined appended count must
+equal both the number of observation records **and** the state's
+`counters.observed`. The most recent completed receipt must match the
+state's cycle identifier, timestamp, new/refresh counts and error list.
+A busy-lease receipt does not create or count an observation. Missing files,
+truncated observations, duplicate entries, altered totals and reordered
+completed cycles fail validation before sensor state persistence.
+
+This proves **internal consistency**, not factual truth of third-party sources,
+the identity of distinct offers, or payment. Observations may include repeated
+readbacks of the same source revision. `counters.observed` is the number of
+appended snapshots, not verified or uniquely funded opportunities.
+
 ## Exact-run sensor to triage handoff
 
 On `workflow_run`, triage must not silently analyze an unrelated moving
