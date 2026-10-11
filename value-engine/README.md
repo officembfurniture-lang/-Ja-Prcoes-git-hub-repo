@@ -222,6 +222,37 @@ malformed search records, and continued capture of normal issue entries.
 Passing these tests means that the new code rejects the simulated failure
 modes; it does not prove immunity against all network or API compromise.
 
+## Ω HOLD: experimental lane open, promotion still gated (2026-10-11)
+
+Issue #2 governs promotion of the historical experimental Ω shadow driver
+(PR #1). The workflow `Omega Paired Shadow Trial` now opens an ongoing
+**read-only test lane** after successful sensor runs, plus PR/manual testing.
+The driver revision is **pinned** to
+`23019008e67b897a008ff786badf3aa976da84a5`, checked out independently.
+The workflow resolves the exact originating sensor commit before reading
+`state.json` and `observations.ndjson`, validates their SHA-256 binding,
+and deterministically selects up to 16 distinct real unverified source
+observations **before** computing the baseline/source classifier or Ω output.
+
+Both evaluate the **same underlying records**, but different safeguards:
+baseline triage marks source review/hold without granting authority, and Ω
+checks that no unsupported material progress is promoted. The outputs
+record false-promotion and evidence gates, sample identities, snapshot
+revision, and whether real human correction burden was measured. This is a
+narrow **same-input safety/compatibility check**, not a head-to-head
+effectiveness comparison, since baseline and Ω do not currently optimize
+the same outcome. It cannot prove Ω outperforms baseline. Consequently
+`promotion_gate=HOLD` even after all tests pass. Repeated identical
+no-delta reports are not evidence of accumulated improvement.
+
+This creates a falsifiable, repeatable test path **without** enabling
+payment, engagement, live task execution, self-modification, hidden code
+promotion or merging PR #1/#26. Genuine promotion requires a further
+held-out paired effectiveness trial on comparably defined outcomes,
+independently verified material effects and measured human correction/
+restoration burden. A tie or unknown burden remains HOLD. New unverified
+sensor observations can never be silently represented as VERIFIED.
+
 ## Cross-run readback feedback with bounded retry cooldown (2026-10-11)
 
 The next triage cycle previously received **no** prior source-readback decisions:
