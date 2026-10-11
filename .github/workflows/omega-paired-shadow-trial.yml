@@ -1,0 +1,118 @@
+name: Omega Paired Shadow Trial
+
+# Read-only evaluation lane. Never deploy, promote, commit, or write state.
+on:
+  pull_request:
+    paths:
+      - 'value-engine/omega_shadow_gate.py'
+      - 'value-engine/test_omega_shadow_gate.py'
+      - '.github/workflows/omega-paired-shadow-trial.yml'
+  workflow_run:
+    workflows:
+      - Value Engine Sensor
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  paired-shadow:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PINNED_OMEGA_SHA: 23019008e67b897a008ff786badf3aa976da84a5
+    steps:
+      - name: Checkout baseline and real sensor data
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+      - id: sensor
+        name: Resolve exact originating sensor snapshot
+        if: github.event_name == 'workflow_run'
+        shell: bash
+        env:
+          SENSOR_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          python3 value-engine/sensor_handoff.py \
+            --run-id "$SENSOR_RUN_ID" \
+            --output "$GITHUB_OUTPUT"
+      - name: Pin baseline to originating persisted sensor commit
+        if: github.event_name == 'workflow_run'
+        env:
+          SENSOR_SHA: ${{ steps.sensor.outputs.state_commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach "$SENSOR_SHA"
+          test "$(git rev-parse HEAD)" = "$SENSOR_SHA"
+      - name: Checkout frozen Ω candidate separately (no promotion)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 23019008e67b897a008ff786badf3aa976da84a5
+          path: omega-pinned
+          persist-credentials: false
+      - name: Verify candidate pin and production sensor state
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C omega-pinned rev-parse HEAD)" = "$PINNED_OMEGA_SHA"
+          python3 value-engine/validate.py
+      - name: Test both bounded shadow-gate and frozen Ω driver
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s value-engine -p 'test_omega_shadow_gate.py' -v
+          (
+            cd omega-pinned
+            python3 -m unittest -v test_omega_shadow_driver_v0.py
+          )
+      - name: Execute same-input real-data shadow safety trial
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 value-engine/omega_shadow_gate.py \
+            --state value-engine/state.json \
+            --observations value-engine/observations.ndjson \
+            --omega-driver omega-pinned/omega_shadow_driver_v0.py \
+            --source-revision "$(git rev-parse HEAD)" \
+            --output /tmp/omega-paired-trial.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          r = json.loads(Path('/tmp/omega-paired-trial.json').read_text())
+          assert r['phase'] == 'EXPERIMENT_OPEN_PROMOTION_HOLD'
+          assert r['sample_size'] >= 1
+          assert r['same_input_for_baseline_and_candidate'] is True
+          assert r['omega_promotions'] == 0
+          assert r['observed_material_improvements'] == 0
+          assert r['human_correction_burden_measured'] is False
+          assert r['promotion_gate'] == 'HOLD'
+          assert all(row['baseline_permission_to_produce'] is False
+                     and row['promoted'] is False for row in r['cases'])
+          print('OMEGA_SHADOW_GATE: TEST_LANE_OPEN; PROMOTION=HOLD')
+          PY
+      - name: Bind output to baseline and immutable candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD > /tmp/omega-paired-baseline-sha.txt
+          git -C omega-pinned rev-parse HEAD > /tmp/omega-paired-candidate-sha.txt
+          sha256sum value-engine/state.json value-engine/observations.ndjson \
+            /tmp/omega-paired-trial.json > /tmp/omega-paired-sha256.txt
+      - name: Preserve bounded non-authoritative paired receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: omega-paired-safety-${{ github.run_id }}
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            /tmp/omega-paired-trial.json
+            /tmp/omega-paired-baseline-sha.txt
+            /tmp/omega-paired-candidate-sha.txt
+            /tmp/omega-paired-sha256.txt
