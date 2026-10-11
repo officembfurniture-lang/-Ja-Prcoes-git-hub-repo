@@ -48,13 +48,28 @@ def _parse_time(value: str) -> datetime:
     return result
 
 
+def valid_evidence_reference(value: Any, allowed_schemes: set[str]) -> bool:
+    """Validate scheme and address shape, not the truth of its contents."""
+    if not isinstance(value, str) or not value or any(ch.isspace() for ch in value):
+        return False
+    try:
+        parsed = urlparse(value)
+        if parsed.scheme not in allowed_schemes:
+            return False
+        if parsed.scheme == "https":
+            return bool(parsed.hostname) and parsed.username is None and parsed.password is None
+        return bool(parsed.netloc or parsed.path)
+    except ValueError:  # e.g. malformed IPv6 authority
+        return False
+
+
 def validate_draft(draft: dict[str, Any]) -> None:
     if not isinstance(draft, dict):
         raise ValueError("mandate draft must be an object")
     _reject_non_finite(draft, "draft")
     required_text = ("issuer", "task", "kill_gate", "expires_at")
     for key in required_text:
-        if not str(draft.get(key, "")).strip():
+        if not isinstance(draft.get(key), str) or not draft[key].strip():
             raise ValueError(f"mandate field {key} cannot be empty")
     _parse_time(draft["expires_at"])
     if draft.get("authority") not in ALLOWED_AUTHORITIES:
@@ -86,9 +101,14 @@ def validate_draft(draft: dict[str, Any]) -> None:
             raise ValueError(f"unsupported operator for criterion {metric}")
         if "target" not in criterion:
             raise ValueError(f"criterion {metric} requires a target")
-    allowed_sources = draft.get("evidence_policy", {}).get("allowed_schemes", [])
-    if not allowed_sources or any(value not in {"https", "dataset", "metric", "transaction"} for value in allowed_sources):
-        raise ValueError("evidence_policy.allowed_schemes must declare supported external provenance schemes")
+    policy = draft.get("evidence_policy")
+    if not isinstance(policy, dict):
+        raise ValueError("evidence_policy must be an object")
+    allowed_sources = policy.get("allowed_schemes")
+    if (not isinstance(allowed_sources, list) or not allowed_sources
+            or any(not isinstance(value, str) or value not in
+                   {"https", "dataset", "metric", "transaction"} for value in allowed_sources)):
+        raise ValueError("evidence_policy.allowed_schemes must list supported provenance schemes")
 
 
 def freeze_mandate(draft: dict[str, Any]) -> dict[str, Any]:
@@ -135,7 +155,14 @@ def evaluate_attestation(mandate: dict[str, Any], attestation: dict[str, Any]) -
         actual_present = metric in metrics
         actual = metrics.get(metric)
         try:
-            passed = actual_present and OPERATORS[criterion["operator"]](actual, criterion["target"])
+            target = criterion["target"]
+            # Python considers True == 1, but those are distinct measurement types.
+            boolean_numeric_mismatch = (
+                (type(actual) is bool and type(target) in (int, float))
+                or (type(target) is bool and type(actual) in (int, float))
+            )
+            passed = (actual_present and not boolean_numeric_mismatch
+                      and OPERATORS[criterion["operator"]](actual, target))
         except TypeError:
             passed = False
         evaluations.append(
@@ -153,7 +180,7 @@ def evaluate_attestation(mandate: dict[str, Any], attestation: dict[str, Any]) -
     evidence_valid = (
         isinstance(evidence_refs, list)
         and bool(evidence_refs)
-        and all(isinstance(value, str) and urlparse(value).scheme in allowed_schemes for value in evidence_refs)
+        and all(valid_evidence_reference(value, allowed_schemes) for value in evidence_refs)
     )
     accepted = all(
         [

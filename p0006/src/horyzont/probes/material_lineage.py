@@ -37,6 +37,19 @@ def _validate(payload: dict[str, Any]) -> None:
             if identifier in identifiers:
                 raise ValueError("source and demand ids must be globally unique")
             identifiers.add(identifier)
+            fields = ("quality_tags", "contaminants") if kind == "source" else (
+                "required_tags", "prohibited_contaminants", "accepted_regions"
+            )
+            for field in fields:
+                values = item.get(field, [])
+                if (not isinstance(values, list)
+                        or any(not isinstance(value, str) or not value.strip()
+                               for value in values)):
+                    raise ValueError(f"{kind} {identifier} {field} must be a list of non-empty strings")
+            if kind == "source" and "region" in item and (
+                not isinstance(item["region"], str) or not item["region"].strip()
+            ):
+                raise ValueError(f"source {identifier} region must be a non-empty string")
             if kind == "source":
                 material_code = item.get("material_code")
                 if not isinstance(material_code, str) or not material_code.strip():
@@ -77,13 +90,7 @@ def build_opportunity_map(payload: dict[str, Any]) -> dict[str, Any]:
             )
             if source_mass < demand_mass:
                 continue
-            accepted_regions_raw = demand.get("accepted_regions", [])
-            if not isinstance(accepted_regions_raw, list) or any(
-                not isinstance(region, str) or not region.strip()
-                for region in accepted_regions_raw
-            ):
-                raise ValueError(f"demand {demand['id']} accepted_regions must be a list of non-empty strings")
-            accepted_regions = set(accepted_regions_raw)
+            accepted_regions = set(demand.get("accepted_regions", []))
             if accepted_regions and source.get("region") not in accepted_regions:
                 continue
             region_match = True

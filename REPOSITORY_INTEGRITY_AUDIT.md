@@ -61,3 +61,49 @@ Observed checks in that run:
 - repository remained unmodified by self-tests.
 
 Because this status update changes the PR head, the final head must also receive a successful `Repository Integrity` run before merge. A failure must be preserved and repaired causally; acceptance criteria must not be weakened merely to obtain a green run.
+
+## Follow-up audit — 2026-10-11 (scoped, read-only evidence plus proposed repairs)
+
+This section is a new dated observation and **does not replace** the original
+2026-10-09 historical snapshot. The starting `main` commit for this inspection
+was `edf0ede1d1cc94122b9463561254a163ded06cdf`. GitHub returned 112
+non-truncated tree entries and 28 branch references. A branch listing confirms
+existence and current heads; it does **not** mean every historic branch revision
+has undergone full independent testing. The inspected default-branch areas
+included all six workflow files, all seven action entrypoints (root and P-0002
+through P-0007), both engine validators, all public probe implementations,
+repository test suites, policy, route registry and the most recent Actions runs.
+
+The canonical VALUE_ENGINE state read at that commit reported cycle 234,
+`observed=9769`, `accepted=2`, `paid=0`, and empty cash receipts. The last
+run ledger row and state agreed on `cycle-234-38103192809`. Three direct-source
+GET attempts in that cycle returned HTTP 404, which is **not** evidence that an
+opportunity was closed, verified, executed or paid.
+
+Confirmed input-contract defects and this repair branch's regression tests:
+
+- P-0004 allowed bare `https:` references without hosts in evidence assertions;
+  HTTP address shape is now checked (with no URL-embedded credentials), while
+  `evidence_semantics_independently_verified` remains `false`.
+- P-0004 comparisons previously relied on Python equality, under which
+  `True == 1`. Boolean and numeric evidence may no longer cross-pass criteria.
+- P-0004 and P-0005 previously accepted some malformed policy/provenance and
+  null textual inputs. The shape checks are now explicit.
+- P-0006 previously allowed string tag fields to be converted to sets of
+  characters and performed some validation only after finding candidate pairs.
+  All tag, contaminant and region lists are now checked before matching.
+
+These findings are structural/semantic tests, not independent confirmation of
+real-world use or money. The new tests and public probes ran successfully in
+Repository Integrity PR CI run `38123355542` on patch head
+`0c077e036940801575f4f4ad2c927e0a2853fca5`: 97 VALUE_ENGINE tests,
+17 repository tests, all P-0002–P-0007 self-tests and truth boundaries. A
+subsequent documentation commit requires its **own final-head validation** before
+merge.
+
+Remaining audit boundary: a `workflow_run` triage job checks out moving default
+branch state and has not yet established a mandatory identity match between its
+triggering sensor run and `state.json` plus the run ledger. It must not be
+represented as a proven exact-run handoff without that check. Experimental
+branches and PR #1/Issue #2 remain on HOLD; no independent external financial
+outcome was established.

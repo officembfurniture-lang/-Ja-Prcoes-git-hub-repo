@@ -248,6 +248,76 @@ class ProbeBoundaryTests(unittest.TestCase):
         self.assertEqual(result["candidate_matches"], [])
         self.assertEqual(result["candidate_mass_kg"], 0)
 
+    def test_p0004_rejects_unaddressable_evidence_and_boolean_numeric_equivalence(self):
+        mandate = p0004.freeze_mandate(valid_mandate())
+        attestation = {
+            "mandate_hash": mandate["mandate_hash"],
+            "observed_at": "2026-10-11T08:00:00Z",
+            "metrics": {"ok": True},
+            "evidence_refs": ["https://example.org/real-address"],
+        }
+        self.assertTrue(p0004.evaluate_attestation(mandate, attestation)["accepted"])
+        for forged in ("https:made-up", "https:///no-host", "https://alice:secret@example.com",
+                       "https://[unclosed", "https://example.org/not real"):
+            with self.subTest(reference=forged):
+                other = copy.deepcopy(attestation)
+                other["evidence_refs"] = [forged]
+                result = p0004.evaluate_attestation(mandate, other)
+                self.assertFalse(result["accepted"])
+                self.assertFalse(result["checks"]["external_evidence_references_valid"])
+        another = copy.deepcopy(attestation)
+        another["metrics"] = {"ok": 1}
+        verdict = p0004.evaluate_attestation(mandate, another)
+        self.assertFalse(verdict["accepted"])
+        self.assertFalse(verdict["checks"]["all_criteria_passed"])
+
+    def test_p0004_rejects_invalid_policy_shapes_and_text_fields(self):
+        for field in ("issuer", "task", "kill_gate"):
+            case = valid_mandate()
+            case[field] = None
+            with self.subTest(field=field):
+                with self.assertRaises(ValueError):
+                    p0004.validate_draft(case)
+        for policy in ("https", {"allowed_schemes": "https"}, {"allowed_schemes": []}):
+            case = valid_mandate()
+            case["evidence_policy"] = policy
+            with self.subTest(policy=policy):
+                with self.assertRaises(ValueError):
+                    p0004.validate_draft(case)
+
+    def test_p0005_rejects_nonaddressable_refs_and_bad_text(self):
+        for bad in ("https:no-host", "https:///no-host", "https://[unclosed",
+                    "https://username:secret@example.org/a", "", None, "https://a b"):
+            case = valid_measurement()
+            case["measurement"]["source_ref"] = bad
+            with self.subTest(source_ref=bad):
+                with self.assertRaises(ValueError):
+                    p0005.validate_draft(case)
+        for field in ("id", "question", "hypothesis"):
+            case = valid_measurement()
+            case[field] = None
+            with self.subTest(field=field):
+                with self.assertRaises(ValueError):
+                    p0005.validate_draft(case)
+
+    def test_p0006_rejects_non_list_tag_fields_even_when_no_pairs_match(self):
+        for kind, field, value in (
+            ("sources", "quality_tags", "dry"),
+            ("sources", "contaminants", "toxic"),
+            ("demands", "required_tags", "dry"),
+            ("demands", "prohibited_contaminants", "toxic"),
+            ("demands", "accepted_regions", "x"),
+            ("demands", "accepted_regions", [3]),
+        ):
+            case = valid_lineage()
+            # Deliberately eliminate material compatibility: invalid inputs must
+            # still fail, not be silently skipped by the inner match loop.
+            case["sources"][0]["material_code"] = "UNMATCHED"
+            case[kind][0][field] = value
+            with self.subTest(kind=kind, field=field, value=value):
+                with self.assertRaises(ValueError):
+                    p0006.build_opportunity_map(case)
+
     def test_p0007_rejects_string_boolean_and_nonfinite_values(self):
         case = valid_backtest()
         case["episodes"][0]["event_occurred"] = "false"
