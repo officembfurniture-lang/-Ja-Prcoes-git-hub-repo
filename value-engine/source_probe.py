@@ -112,7 +112,10 @@ def probe(queue: Path, output: Path, summary: Path, *,
                         "prior_status": previous_status,
                     })
             eligible = eligible_now
-            prior_feedback_status = "USED"
+            prior_feedback_status = (
+                "SUPPRESSION_APPLIED" if skipped_recent
+                else "VALID_NO_SUPPRESSION"
+            )
         except (ValueError, KeyError, TypeError, OSError, UnicodeError,
                 json.JSONDecodeError, OverflowError) as exc:
             prior_feedback_status = "INVALID_FALLBACK_TO_FRESH_GET"
