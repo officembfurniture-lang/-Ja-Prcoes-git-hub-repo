@@ -89,7 +89,7 @@ jobs:
             --observations observations.ndjson \
             --queue /tmp/value-engine-triage-queue.ndjson \
             --summary /tmp/value-engine-triage-summary.json \
-            --limit 50 \
+            --limit 0 \
             --as-of "$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           cat /tmp/value-engine-triage-summary.json
       - name: Show top semantic VERIFY candidates
@@ -133,7 +133,10 @@ jobs:
           assert summary['reference_time_source'] == 'explicit_as_of'
           assert summary['snapshot_max_age_days'] == 7
           assert summary['authoritative'] is False
-          assert 0 <= summary['verify_queue_emitted'] <= 50
+          assert summary['complete_verify_queue'] is True
+          assert summary['verify_queue_emitted'] == summary['verify_queue_total']
+          assert 0 <= summary['verify_queue_emitted'] <= 5000
+          assert summary['max_complete_verify_queue'] == 5000
 
           # A fresh GitHub GET never grants economic or execution authority.
           from hashlib import sha256
@@ -142,6 +145,7 @@ jobs:
           assert probe['stage'] == 'SOURCE_READBACK_NON_AUTHORITATIVE'
           assert probe['authoritative'] is False
           assert probe['queue_sha256'] == sha256(Path('/tmp/value-engine-triage-queue.ndjson').read_bytes()).hexdigest()
+          assert probe['queue_count'] == summary['verify_queue_total']
           assert 0 <= probe['attempted'] <= 3
           assert 0 <= probe['results'] <= 3
           assert probe['rotation'] == ${{ github.run_number }}

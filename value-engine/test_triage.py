@@ -383,6 +383,101 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(len(values), 1)
         self.assertEqual(values[0]["fingerprint"], "new")
 
+    def test_complete_queue_removes_hidden_readback_ceiling(self):
+        # 219 queueable source revisions mirror the 2026-10-11 live triage size.
+        # The old workflow emitted only 50: source_probe could never reach 169.
+        import source_probe
+
+        records = [
+            obs(f"$35 bounty task {number}",
+                "Funded. Acceptance criteria: tests. Submit a pull request. Payout after acceptance.",
+                url=f"https://github.com/example/repo/issues/{number}",
+                fingerprint=f"synthetic-{number}")
+            for number in range(1, 220)
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            inp, queue, summary = (root / name for name in
+                                   ("observations.ndjson", "queue.ndjson", "summary.json"))
+            readbacks, readback_summary = root / "readbacks.ndjson", root / "readbacks.json"
+            inp.write_text("".join(json.dumps(x) + "\n" for x in records), encoding="utf-8")
+
+            old = triage.run(inp, queue, summary, 50, as_of=REF)
+            self.assertEqual(old["verify_queue_total"], 219)
+            self.assertEqual(old["verify_queue_emitted"], 50)
+            self.assertFalse(old["complete_verify_queue"])
+
+            full = triage.run(inp, queue, summary, 0, as_of=REF)
+            self.assertEqual(full["verify_queue_total"], 219)
+            self.assertEqual(full["verify_queue_emitted"], 219)
+            self.assertTrue(full["complete_verify_queue"])
+            self.assertEqual(len(queue.read_text().splitlines()), 219)
+
+            reached = set()
+            def fetch(url, token):
+                number = int(url.rsplit("/", 1)[1])
+                return {
+                    "html_url": url, "number": number, "state": "open",
+                    "title": f"$35 bounty task {number}", "body": "Synthetic, no external funding.",
+                    "updated_at": "2026-09-11T10:00:00Z",
+                }
+            # With one priority slot and two rotating source GETs per cycle,
+            # 109 iterations cover all 219 stable unique URLs. No write API.
+            for rotation in range(109):
+                result = source_probe.probe(
+                    queue, readbacks, readback_summary, limit=3,
+                    rotation=rotation, at=REF, fetcher=fetch)
+                self.assertEqual(result["attempted"], 3)
+                self.assertEqual(result["dispositions"], {"READBACK_OPEN": 3})
+                self.assertFalse(result["authorization_to_execute"])
+                self.assertFalse(result["primary_source_verified"])
+                for item in readbacks.read_text().splitlines():
+                    reached.add(json.loads(item)["queue_source_url"])
+            self.assertEqual(
+                reached,
+                {f"https://github.com/example/repo/issues/{i}" for i in range(1, 220)}
+            )
+
+    def test_complete_queue_cap_fails_loudly_instead_of_silent_truncation(self):
+        import unittest.mock
+
+        records = [
+            obs(f"$35 bounty {i}", "Funded. Acceptance criteria: tests. Submit a pull request.",
+                url=f"https://github.com/example/repo/issues/{i}")
+            for i in range(1, 4)
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            inp, queue, summary = (root / name for name in
+                                   ("obs.ndjson", "queue.ndjson", "summary.json"))
+            inp.write_text("".join(json.dumps(x) + "\n" for x in records))
+            with unittest.mock.patch.object(triage, "MAX_COMPLETE_VERIFY_QUEUE", 2):
+                with self.assertRaisesRegex(ValueError, "artifact cap"):
+                    triage.run(inp, queue, summary, 0, as_of=REF)
+            self.assertFalse(queue.exists())
+            self.assertFalse(summary.exists())
+
+    def test_explicit_limited_queue_preserves_previous_default_semantics(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            inp, queue, summary = (root / name for name in
+                                   ("obs.ndjson", "queue.ndjson", "summary.json"))
+            records = [
+                obs(f"$10 bounty {i}", "Funded. Acceptance criteria: tests.",
+                    url=f"https://github.com/example/repo/issues/{i}")
+                for i in range(1, 7)
+            ]
+            inp.write_text("".join(json.dumps(r) + "\n" for r in records))
+            limited = triage.run(inp, queue, summary, 3, as_of=REF)
+            selected = queue.read_text()
+            self.assertEqual(limited["verify_queue_total"], 6)
+            self.assertEqual(limited["verify_queue_emitted"], 3)
+            self.assertFalse(limited["complete_verify_queue"])
+            triage.run(inp, queue, summary, 0, as_of=REF)
+            self.assertEqual(selected, "".join(queue.read_text().splitlines(keepends=True)[:3]))
+            with self.assertRaises(ValueError):
+                triage.run(inp, queue, summary, -1, as_of=REF)
+
     def test_run_emits_only_verify_candidates_and_never_realized_value(self):
         good = obs(
             "[BOUNTY $250] Good",

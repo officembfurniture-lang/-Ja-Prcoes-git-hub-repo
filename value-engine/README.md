@@ -107,6 +107,31 @@ and `direct_readback_closed`. These are sensor measurements, not confirmed
 payment or adoption. The cap and deterministic ranking prevent unbounded
 retrieval, but do not guarantee that every archived issue is revisited.
 
+## Full pre-VERIFY pool and bounded fair readback
+
+On 2026-10-11, a real triage run identified 219 `QUEUE_VERIFY` source
+candidates but its historical `--limit 50` only exposed the top 50 to
+`source_probe.py`. No rotation inside the probe could ever inspect the 169
+entries discarded by the preceding stage. This was a cross-stage reachability
+defect, **not** a shortage of network requests.
+
+The scheduled shadow job now uses `triage.py --limit 0` to pass its **entire
+ranked pre-VERIFY pool** to the existing, independently capped readback module,
+up to a strict finite artifact bound of 5000 candidates. If more than 5000
+eligible items would be produced, triage fails closed instead of silently
+omitting some candidates. Its summary records `complete_verify_queue`,
+`verify_queue_total`, `verify_queue_emitted` and the cap. The workflow
+requires exact agreement of queue count and candidate total.
+
+The readback module still performs at most **three** public read-only GitHub
+GETs per cycle, keeping the top-ranked source and deterministically rotating
+the remaining two across the full emitted universe. For a fixed queue of 219
+unique eligible URLs, 109 consecutive rotations reach all 219; this is an
+offline regression test, not a claim of real-world coverage when sources
+change, GitHub searches fail, or the queue grows. Original source funding,
+approval, execution and payment remain unverified. No API write privileges,
+contacts, fees or payment rails are added.
+
 ## Bounded source evidence, separate from triage rank
 
 The `Value Engine Triage Shadow` workflow now executes `source_probe.py`

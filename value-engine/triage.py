@@ -22,6 +22,9 @@ DEFAULT_QUEUE = ROOT / "triage-queue.ndjson"
 DEFAULT_SUMMARY = ROOT / "triage-summary.json"
 # A stored source snapshot is not a live readback. This is a queue-only freshness gate.
 SNAPSHOT_MAX_AGE = timedelta(days=7)
+# Finite artifact bound. 0 requests all matching candidates up to this cap;
+# never silently cut away lower-ranked candidates from the readback universe.
+MAX_COMPLETE_VERIFY_QUEUE = 5000
 
 VALUE_RE = re.compile(
     r"(?:\$\s?\d[\d,.]*|\b\d[\d,.]*\s?(?:USD|USDC|EUR|GBP|sats?|RTC)\b)",
@@ -340,15 +343,22 @@ def reference_time(records: list[dict]) -> datetime:
 
 def run(observations: Path, queue_path: Path, summary_path: Path, limit: int,
         as_of: datetime | None = None) -> dict:
+    if type(limit) is not int or limit < 0:
+        raise ValueError("triage queue limit must be a non-negative integer")
     records = newest_by_url(iter_records(observations))
     if as_of is not None and (as_of.tzinfo is None or as_of.utcoffset() is None):
         raise ValueError("as_of must include timezone")
     ref = as_of.astimezone(timezone.utc) if as_of is not None else reference_time(records)
     triaged = [classify(record, ref) for record in records]
-    verify = sorted(
+    ranked = sorted(
         (item for item in triaged if item["disposition"] == "QUEUE_VERIFY"),
         key=queue_key,
-    )[:limit]
+    )
+    if limit == 0 and len(ranked) > MAX_COMPLETE_VERIFY_QUEUE:
+        raise ValueError(
+            "complete pre-VERIFY queue exceeds artifact cap; require explicit review"
+        )
+    verify = ranked if limit == 0 else ranked[:limit]
 
     with queue_path.open("w", encoding="utf-8") as handle:
         for item in verify:
@@ -362,8 +372,10 @@ def run(observations: Path, queue_path: Path, summary_path: Path, limit: int,
         "reference_time_source": "explicit_as_of" if as_of is not None else "latest_observed_detection",
         "snapshot_max_age_days": SNAPSHOT_MAX_AGE.days,
         "unique_observations": len(records),
-        "verify_queue_total": sum(1 for item in triaged if item["disposition"] == "QUEUE_VERIFY"),
+        "verify_queue_total": len(ranked),
         "verify_queue_emitted": len(verify),
+        "complete_verify_queue": len(verify) == len(ranked),
+        "max_complete_verify_queue": MAX_COMPLETE_VERIFY_QUEUE,
         "dispositions": dict(sorted(counts.items())),
         "authoritative": False,
         "note": "Triage is not verification, selection, execution, delivery, settlement, or realized value.",
@@ -377,12 +389,13 @@ def main() -> int:
     parser.add_argument("--observations", type=Path, default=DEFAULT_OBS)
     parser.add_argument("--queue", type=Path, default=DEFAULT_QUEUE)
     parser.add_argument("--summary", type=Path, default=DEFAULT_SUMMARY)
-    parser.add_argument("--limit", type=int, default=50)
+    parser.add_argument("--limit", type=int, default=50,
+                        help="Maximum queued candidates; 0 emits all (bounded by 5000)")
     parser.add_argument("--as-of", type=str, default=None,
                         help="Explicit timezone-aware evaluation time for live triage; replay uses recorded input otherwise.")
     args = parser.parse_args()
-    if args.limit < 1:
-        parser.error("--limit must be >= 1")
+    if args.limit < 0:
+        parser.error("--limit must be >= 0")
     as_of = parse_time(args.as_of) if args.as_of is not None else None
     if args.as_of is not None and as_of is None:
         parser.error("--as-of must be a timezone-aware ISO timestamp")
