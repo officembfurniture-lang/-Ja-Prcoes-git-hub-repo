@@ -35,12 +35,53 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+      - id: sensor-handoff
+        name: Resolve triggering sensor's exact persisted state commit
+        if: github.event_name == 'workflow_run'
+        env:
+          TRIGGERING_SENSOR_RUN_ID: ${{ github.event.workflow_run.id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          python3 value-engine/sensor_handoff.py \
+            --run-id "$TRIGGERING_SENSOR_RUN_ID" \
+            --output "$GITHUB_OUTPUT"
+      - name: Checkout matching sensor snapshot before reading its observations
+        if: github.event_name == 'workflow_run'
+        shell: bash
+        env:
+          SOURCE_COMMIT: ${{ steps.sensor-handoff.outputs.state_commit }}
+        run: |
+          set -euo pipefail
+          git checkout --detach "$SOURCE_COMMIT"
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
       - name: Unit tests
         working-directory: value-engine
         run: python3 -m unittest -v test_triage.py
       - name: Source readback regression tests (offline)
         working-directory: value-engine
         run: python3 -m unittest -v test_source_probe.py
+      - name: Smoke-test provenance lookup against actual main sensor ledger
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          expected="$(python3 - <<'PY'
+          import json
+          import subprocess
+          state = json.loads(subprocess.check_output(
+              ['git', 'show', 'origin/main:value-engine/state.json'], text=True))
+          print(state['last_cycle_result']['cycle_id'].rsplit('-', 1)[1])
+          PY
+          )"
+          python3 value-engine/sensor_handoff.py \
+            --run-id "$expected" \
+            --output /tmp/sensor-handoff-smoke.output
+          grep -Eq '^state_commit=[0-9a-f]{40}$' /tmp/sensor-handoff-smoke.output
       - name: Replay triage against persisted observations
         working-directory: value-engine
         run: |
@@ -135,6 +176,9 @@ jobs:
       - name: Bind output to exact input and checkout
         run: |
           git rev-parse HEAD > /tmp/value-engine-triage-checkout-sha.txt
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            test "$(cat /tmp/value-engine-triage-checkout-sha.txt)" = "${{ steps.sensor-handoff.outputs.state_commit }}"
+          fi
           sha256sum value-engine/observations.ndjson \
             /tmp/value-engine-triage-queue.ndjson \
             /tmp/value-engine-triage-summary.json \
