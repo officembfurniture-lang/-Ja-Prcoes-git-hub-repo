@@ -41,6 +41,32 @@ class ValidationTests(unittest.TestCase):
             "counters": {"observed": 2, "verified": 2, "selected": 2, "produced": 2,
                          "delivered": 2, "accepted": 2, "paid": 0, "human_gates": 0},
         })
+        # A full, internally consistent synthetic sensor chain is part of
+        # every validator fixture. Production validation must not accept
+        # missing stores merely because they were absent in earlier tests.
+        self.state["cycle"] = 2
+        self.state["last_cycle_result"] = {
+            "cycle_id": "cycle-2-fixture-b", "at": "2026-09-19T12:00:00Z",
+            "new_observations": 1, "refreshed_snapshots": 0,
+            "source_errors": [],
+        }
+        (self.root / "observations.ndjson").write_text(
+            json.dumps({"fingerprint": "fixture-a", "status": "OBSERVED"}) + "\n"
+            + json.dumps({"fingerprint": "fixture-b", "status": "OBSERVED"}) + "\n",
+            encoding="utf-8",
+        )
+        sensor_ledger = [
+            {"cycle_id": "cycle-1-fixture-a", "result": "SENSE_COMPLETE",
+             "at": "2026-09-19T11:00:00Z", "new_observations": 1,
+             "realized_value": 0, "errors": []},
+            {"cycle_id": "cycle-2-fixture-b", "result": "SENSE_COMPLETE",
+             "at": "2026-09-19T12:00:00Z", "new_observations": 1,
+             "refreshed_snapshots": 0, "realized_value": 0, "errors": []},
+        ]
+        (self.root / "run-ledger.ndjson").write_text(
+            "".join(json.dumps(row) + "\n" for row in sensor_ledger),
+            encoding="utf-8",
+        )
         rows = []
         for suffix in ("one", "two"):
             row = self.paid_receipt()
@@ -166,8 +192,12 @@ class ValidationTests(unittest.TestCase):
                                               present=True)
 
     def test_validator_rejects_one_sided_sensor_store(self):
-        (self.root / "observations.ndjson").write_text(
-            '{"status": "OBSERVED"}\n', encoding="utf-8")
+        (self.root / "run-ledger.ndjson").unlink()
+        self.reject()
+
+    def test_validator_rejects_both_sensor_stores_missing(self):
+        (self.root / "run-ledger.ndjson").unlink()
+        (self.root / "observations.ndjson").unlink()
         self.reject()
 
     def test_valid_production_contract_for_each_phase(self):
