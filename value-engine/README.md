@@ -222,6 +222,30 @@ malformed search records, and continued capture of normal issue entries.
 Passing these tests means that the new code rejects the simulated failure
 modes; it does not prove immunity against all network or API compromise.
 
+## Readback-to-decision boundary (advisory only)
+
+Read-only `readback_review.py` now binds the complete pre-VERIFY queue,
+its three-or-fewer GitHub source-readback receipts and the readback summary
+by **exact queue SHA256, original rank, URL, fingerprint, source timestamps,
+snapshot flags and recorded readback time**. Missing, forged, duplicated,
+inconsistent or unbound receipts cause the stage to fail closed.
+
+The bounded observed sources are assigned distinct **review decisions**:
+- `HOLD_CLOSED_SOURCE`: the issue is observed closed; do not treat as an open offer.
+- `RE_TRIAGE_CHANGED_SOURCE`: the issue is still open but has changed title
+  or source update time; re-evaluate its terms before proceeding.
+- `HOLD_SOURCE_UNCONFIRMED`: GET failed; a network error is not proof of closure.
+- `REVIEW_OPEN_UNVERIFIED`: currently open with unchanged title/update time;
+  verify funding, scope and routes independently before doing any work.
+
+The workflow preserves `readback-decisions.ndjson` and summary as SHA256-bound
+artifacts alongside the original readbacks, while reporting exactly how many
+sources in the full queue were **not read back** in that cycle. These are
+advisory decision-quality controls, not verified funding, authorization or
+a mutation of historical observations. There are still at most **three**
+public GETs, zero external interactions beyond those reads, zero authorized
+payments and no promotion of an experimental HOLD.
+
 ## Exact-run sensor to triage handoff
 
 On `workflow_run`, triage must not silently analyze an unrelated moving
