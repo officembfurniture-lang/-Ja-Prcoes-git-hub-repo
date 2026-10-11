@@ -109,20 +109,20 @@ def build_opportunity_map(payload: dict[str, Any]) -> dict[str, Any]:
             matched_sources.add(source["id"])
             matched_demands.add(demand["id"])
     candidates.sort(key=lambda item: (-item["coordination_score"], item["source_id"], item["demand_id"]))
+    unique_mass = sum(
+        _positive_finite_number(source["mass_kg"], f"source {source['id']} mass_kg")
+        for source in payload["sources"] if source["id"] in matched_sources
+    )
+    pair_mass = sum(item["candidate_mass_kg"] for item in candidates)
+    if not (math.isfinite(unique_mass) and math.isfinite(pair_mass)):
+        raise ValueError("modeled material mass totals overflowed the finite numeric range")
     return {
         "schema": SCHEMA,
         "candidate_matches": candidates,
         "unmatched_source_ids": sorted(source["id"] for source in payload["sources"] if source["id"] not in matched_sources),
         "unmatched_demand_ids": sorted(demand["id"] for demand in payload["demands"] if demand["id"] not in matched_demands),
-        "candidate_mass_kg": round(
-            sum(
-                _positive_finite_number(source["mass_kg"], f"source {source['id']} mass_kg")
-                for source in payload["sources"]
-                if source["id"] in matched_sources
-            ),
-            6,
-        ),
-        "candidate_pair_mass_kg": round(sum(item["candidate_mass_kg"] for item in candidates), 6),
+        "candidate_mass_kg": round(unique_mass, 6),
+        "candidate_pair_mass_kg": round(pair_mass, 6),
         "truth_boundary": {
             "physical_transfer_occurred": False,
             "ownership_transfer_authorized": False,
@@ -139,7 +139,8 @@ def main() -> None:
     parser.add_argument("--output", help="Optional result JSON path")
     args = parser.parse_args()
     payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
-    rendered = json.dumps(build_opportunity_map(payload), ensure_ascii=False, indent=2, sort_keys=True)
+    rendered = json.dumps(build_opportunity_map(payload), ensure_ascii=False, indent=2,
+                          sort_keys=True, allow_nan=False)
     if args.output:
         Path(args.output).write_text(rendered + "\n", encoding="utf-8")
     else:
