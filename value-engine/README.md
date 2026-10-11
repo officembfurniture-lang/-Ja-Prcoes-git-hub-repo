@@ -110,7 +110,13 @@ retrieval, but do not guarantee that every archived issue is revisited.
 ## Bounded source evidence, separate from triage rank
 
 The `Value Engine Triage Shadow` workflow now executes `source_probe.py`
-on up to **three unique pre-VERIFY queue URLs** per run. Its GitHub API
+on up to **three unique pre-VERIFY queue URLs** per run. Its first
+readback targets the highest-ranked eligible queue entry; the remaining
+up to two URLs rotate deterministically using the GitHub workflow
+`run_number`. This preserves priority while covering other candidates
+without increasing the per-run request cap. The receipt records the
+rotation and exact original queue ranks, so the selection can be replayed.
+A repeated readback is not a new external outcome. Its GitHub API
 `GET` receipts record whether an issue currently exists and is open or
 closed, the original queued title/update timestamp, returned source
 revision fields, a SHA-256 digest of selected returned source content,
