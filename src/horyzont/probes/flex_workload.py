@@ -172,6 +172,11 @@ def analyze_workload(payload: dict[str, Any]) -> dict[str, Any]:
             optimization_selection = "grid_aware_heuristic"
 
     moved = [task for task in tasks if baseline_starts[task.id] != optimized_starts[task.id]]
+    shifted_energy = sum(
+        task.power_kw * (task.duration_slots * slot_hours) for task in moved
+    )
+    if not math.isfinite(shifted_energy):
+        raise ValueError("planned shifted energy exceeds the finite numeric range")
     return {
         "schema": SCHEMA,
         "slot_minutes": slot_minutes,
@@ -189,9 +194,7 @@ def analyze_workload(payload: dict[str, Any]) -> dict[str, Any]:
             "weighted_grid_stress": round(optimized_weighted_stress, 6),
         },
         "optimization_selection": optimization_selection,
-        "planned_shifted_energy_kwh": round(
-            sum(task.power_kw * task.duration_slots * slot_hours for task in moved), 6
-        ),
+        "planned_shifted_energy_kwh": round(shifted_energy, 6),
         "moved_task_ids": sorted(task.id for task in moved),
         "truth_boundary": {
             "input_kind": payload.get("input_kind", "unspecified"),
@@ -207,7 +210,8 @@ def main() -> None:
     parser.add_argument("--output", help="Optional result JSON path")
     args = parser.parse_args()
     payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
-    rendered = json.dumps(analyze_workload(payload), ensure_ascii=False, indent=2, sort_keys=True)
+    rendered = json.dumps(analyze_workload(payload), ensure_ascii=False, indent=2,
+                          sort_keys=True, allow_nan=False)
     if args.output:
         Path(args.output).write_text(rendered + "\n", encoding="utf-8")
     else:
