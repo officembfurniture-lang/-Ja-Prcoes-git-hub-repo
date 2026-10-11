@@ -57,38 +57,50 @@ def load_queue(path: Path) -> list[dict]:
 
 def probe(queue: Path, output: Path, summary: Path, *,
           limit: int = MAX_ISSUES, at: datetime | None = None,
+          rotation: int = 0,
           fetcher: Callable[[str, str | None], dict] = github_issue_readback,
           token: str | None = None) -> dict:
     if not (1 <= limit <= MAX_ISSUES):
         raise ValueError("probe limit must be 1..3")
+    if isinstance(rotation, bool) or not isinstance(rotation, int) or rotation < 0:
+        raise ValueError("rotation must be a non-negative integer")
     observed_at = utc_iso(at or datetime.now(timezone.utc))
     raw_hash = hashlib.sha256(queue.read_bytes()).hexdigest()
     rows = load_queue(queue)
     receipts: list[dict] = []
-    attempted_urls: set[str] = set()
     attempts = 0
 
-    for row in rows:
-        if attempts >= limit:
-            break
+    # Keep the highest-ranked eligible source each run, while rotating the
+    # remaining bounded readback budget across other eligible queue entries.
+    # Rotation changes *which source is observed*, never verification authority.
+    eligible: list[tuple[int, dict]] = []
+    eligible_urls: set[str] = set()
+    for rank, row in enumerate(rows, 1):
         url = row.get("url")
-        # Never fetch an arbitrary URL or promote a caller-asserted VERIFIED row.
         if (row.get("disposition") != "QUEUE_VERIFY"
                 or row.get("status") != "OBSERVED"
                 or row.get("primary_source_verified") is not False
                 or row.get("demand_or_reward_verified") is not False
+                or type(row.get("realized_value")) is not int
                 or row.get("realized_value") != 0
                 or not isinstance(url, str)
-                or ISSUE_URL_RE.fullmatch(url) is None):
+                or ISSUE_URL_RE.fullmatch(url) is None
+                or url in eligible_urls):
             continue
-        if url in attempted_urls:
-            continue
-        attempted_urls.add(url)
+        eligible.append((rank, row))
+        eligible_urls.add(url)
+
+    tail = eligible[1:]
+    offset = (rotation * (limit - 1)) % len(tail) if tail else 0
+    ordered = eligible[:1] + tail[offset:] + tail[:offset]
+    for rank, row in ordered[:limit]:
+        url = row["url"]
         attempts += 1
         match = ISSUE_URL_RE.fullmatch(url)
         assert match is not None
         expected_number = int(match.group(3))
         receipt = {
+            "queue_rank": rank,
             "queue_source_url": url,
             "queue_source_updated_at": row.get("updated_at"),
             "queue_title": row.get("title"),
@@ -153,6 +165,10 @@ def probe(queue: Path, output: Path, summary: Path, *,
         "readback_at": observed_at,
         "limit": limit,
         "queue_count": len(rows),
+        "eligible_unique_urls": len(eligible),
+        "rotation": rotation,
+        "rotation_offset": offset,
+        "selected_queue_ranks": [r["queue_rank"] for r in receipts],
         "attempted": attempts,
         "results": len(receipts),
         "dispositions": disposition_counts,
@@ -172,9 +188,11 @@ def main() -> int:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--summary", type=Path, required=True)
     parser.add_argument("--limit", type=int, default=MAX_ISSUES)
+    parser.add_argument("--rotation", type=int, default=0,
+                        help="Deterministic readback rotation counter; does not change rank 1")
     args = parser.parse_args()
     result = probe(args.queue, args.output, args.summary, limit=args.limit,
-                   token=os.environ.get("GITHUB_TOKEN"))
+                   rotation=args.rotation, token=os.environ.get("GITHUB_TOKEN"))
     print(json.dumps(result, sort_keys=True))
     return 0
 

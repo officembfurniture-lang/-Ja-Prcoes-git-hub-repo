@@ -146,6 +146,80 @@ class SourceProbeTests(unittest.TestCase):
         self.assertEqual(report["dispositions"], {"READBACK_OPEN": 3})
         self.assertEqual(len(self.receipts()), 3)
 
+    def test_rotation_keeps_top_and_expands_bounded_coverage(self):
+        self.write(*(queue_item(i) for i in range(1, 9)))
+        calls = []
+        def fetch(url, token):
+            calls.append(int(url.rsplit("/", 1)[1]))
+            return live_issue(calls[-1])
+        summaries = []
+        for rotation in range(4):
+            calls.clear()
+            summary = source_probe.probe(
+                self.queue, self.out, self.summary, limit=3,
+                rotation=rotation, at=AT, fetcher=fetch)
+            ranks = summary["selected_queue_ranks"]
+            self.assertEqual(ranks[0], 1)
+            self.assertEqual(len(ranks), 3)
+            self.assertEqual(len(set(ranks)), 3)
+            self.assertEqual(calls, ranks)
+            self.assertEqual(summary["rotation"], rotation)
+            self.assertEqual(summary["rotation_offset"], (rotation * 2) % 7)
+            self.assertFalse(summary["authorization_to_execute"])
+            summaries.append(ranks)
+        self.assertEqual(summaries[0], [1, 2, 3])
+        self.assertEqual(summaries[1], [1, 4, 5])
+        self.assertEqual(summaries[2], [1, 6, 7])
+        self.assertEqual(summaries[3], [1, 8, 2])
+        self.assertEqual(set(rank for ranks in summaries for rank in ranks),
+                         set(range(1, 9)))
+
+    def test_rotation_replay_is_deterministic_even_with_duplicates(self):
+        self.write(queue_item(1), queue_item(1), queue_item(2),
+                   queue_item(3), queue_item(4),
+                   queue_item(5, primary_source_verified=True),
+                   queue_item(6, realized_value=False))
+        calls = []
+        def fetch(url, token):
+            calls.append(url)
+            return live_issue(int(url.rsplit("/", 1)[1]))
+        def replay():
+            calls.clear()
+            result = source_probe.probe(
+                self.queue, self.out, self.summary, limit=3,
+                rotation=1, at=AT, fetcher=fetch)
+            return result, self.out.read_bytes(), self.summary.read_bytes(), list(calls)
+        a = replay()
+        b = replay()
+        self.assertEqual(a, b)
+        self.assertEqual(a[0]["eligible_unique_urls"], 4)
+        self.assertEqual(a[0]["selected_queue_ranks"], [1, 5, 3])
+        self.assertEqual(len(a[3]), 3)
+
+    def test_one_slot_and_empty_queue_are_safe_under_rotation(self):
+        self.write(*(queue_item(i) for i in range(1, 6)))
+        for rotation in (0, 99, 100000):
+            result = source_probe.probe(
+                self.queue, self.out, self.summary, limit=1, rotation=rotation,
+                at=AT, fetcher=lambda url, token: live_issue())
+            self.assertEqual(result["selected_queue_ranks"], [1])
+            self.assertFalse(result["primary_source_verified"])
+        self.write(queue_item(1, disposition="HOLD_START_PROHIBITED"))
+        summary = source_probe.probe(
+            self.queue, self.out, self.summary, limit=3, rotation=5,
+            at=AT, fetcher=lambda url, token: self.fail("must not fetch"))
+        self.assertEqual(summary["attempted"], 0)
+        self.assertEqual(summary["selected_queue_ranks"], [])
+
+    def test_negative_or_noninteger_rotation_fails_before_fetch(self):
+        self.write(queue_item())
+        for value in (-1, 1.2, "3", True):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    source_probe.probe(
+                        self.queue, self.out, self.summary, rotation=value,
+                        at=AT, fetcher=lambda url, token: self.fail("must not fetch"))
+
     def test_http_error_does_not_create_source_evidence(self):
         self.write(queue_item())
         def fetch(url, token):

@@ -79,7 +79,8 @@ jobs:
             --queue /tmp/value-engine-triage-queue.ndjson \
             --output /tmp/value-engine-source-readback.ndjson \
             --summary /tmp/value-engine-source-readback-summary.json \
-            --limit 3
+            --limit 3 \
+            --rotation "${{ github.run_number }}"
       - name: Enforce shadow invariants
         run: |
           python3 - <<'PY'
@@ -102,6 +103,11 @@ jobs:
           assert probe['queue_sha256'] == sha256(Path('/tmp/value-engine-triage-queue.ndjson').read_bytes()).hexdigest()
           assert 0 <= probe['attempted'] <= 3
           assert 0 <= probe['results'] <= 3
+          assert probe['rotation'] == ${{ github.run_number }}
+          assert isinstance(probe['selected_queue_ranks'], list)
+          assert len(probe['selected_queue_ranks']) == probe['results']
+          assert len(set(probe['selected_queue_ranks'])) == probe['results']
+          assert all(isinstance(rank, int) and rank >= 1 for rank in probe['selected_queue_ranks'])
           for key in ('primary_source_verified', 'demand_or_reward_verified',
                       'settlement_route_verified', 'authorization_to_execute'):
               assert probe[key] is False, key
