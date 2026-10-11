@@ -103,6 +103,71 @@ class ReadbackReviewTests(unittest.TestCase):
                          {"REVIEW_OPEN_UNVERIFIED": 3})
         self.assertTrue(all(x["authority"] == "ADVISORY_ONLY" for x in rows))
 
+    def test_source_stop_capital_and_unfunded_holds_reused_from_same_get(self):
+        snippets = {
+            1: "Do not start this task. Acceptance criteria: tests.",
+            2: "Claim bond required. Stake required to begin.",
+            3: "Not funded. No reward confirmed.",
+        }
+        calls = []
+        def fetcher(url, token):
+            n = int(url.rsplit("/", 1)[1])
+            calls.append(n)
+            return dict(live_issue(n), body=snippets[n])
+        self.prepare(fetcher)
+        summary, rows = self.review()
+        self.assertEqual(calls, [1, 2, 3])
+        self.assertEqual(
+            [r["review_decision"] for r in rows],
+            ["HOLD_START_PROHIBITED", "HOLD_CAPITAL_REQUIRED",
+             "HOLD_REWARD_UNCONFIRMED"])
+        self.assertEqual(
+            [r["current_source_policy"] for r in rows],
+            ["HOLD_START_PROHIBITED", "HOLD_CAPITAL_REQUIRED",
+             "HOLD_REWARD_UNCONFIRMED"])
+        self.assertFalse(summary["authorization_to_execute"])
+
+    def test_truncated_source_tail_requires_explicit_extra_review(self):
+        body = ("Ordinary issue details. " * 210) + "Do not start."
+        self.assertGreater(len(body), 4000)
+        self.prepare(lambda url, token: dict(
+            live_issue(int(url.rsplit("/", 1)[1])), body=body))
+        summary, rows = self.review()
+        self.assertEqual(summary["review_decisions"],
+                         {"RE_TRIAGE_TRUNCATED_SOURCE": 3})
+        self.assertTrue(all(row["source_body_truncated"] for row in rows))
+        self.assertFalse(summary["primary_source_verified"])
+
+    def test_source_body_or_drift_flag_tampering_is_rejected(self):
+        self.prepare(lambda url, token: live_issue(int(url.rsplit("/", 1)[1])))
+        original = [json.loads(x) for x in self.receipts.read_text().splitlines()]
+        for field, value in (
+            ("source_body_excerpt", "changed text without corresponding digest"),
+            ("source_title_changed", True),
+            ("source_updated_at_changed", True),
+        ):
+            with self.subTest(field=field):
+                changed = copy.deepcopy(original)
+                changed[0][field] = value
+                self.receipts.write_text(
+                    "".join(json.dumps(x) + "\n" for x in changed), encoding="utf-8")
+                with self.assertRaises(ValueError):
+                    self.review()
+
+    def test_same_gets_support_current_policy_without_more_network(self):
+        calls = []
+        def fetcher(url, token):
+            calls.append(url)
+            return dict(live_issue(int(url.rsplit("/", 1)[1])),
+                        body="No wallet required. Acceptance criteria: tests.")
+        self.prepare(fetcher)
+        self.assertEqual(len(calls), 3)
+        summary, rows = self.review()
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(summary["review_decisions"],
+                         {"REVIEW_OPEN_UNVERIFIED": 3})
+        self.assertTrue(all(row["authority"] == "ADVISORY_ONLY" for row in rows))
+
     def test_same_inputs_have_byte_identical_decisions(self):
         self.prepare(lambda url, token: live_issue(int(url.rsplit("/", 1)[1])))
         first = self.review()
