@@ -90,6 +90,86 @@ class ValidationTests(unittest.TestCase):
             self.assertEqual(validator.main(), 0)
         self.assertEqual({name: (HERE / name).read_bytes() for name in before}, before)
 
+    def synthetic_sensor_history(self):
+        ledger = [
+            {"cycle_id": "cycle-1-synthetic-a", "result": "SENSE_COMPLETE",
+             "at": "2026-09-01T10:00:00Z", "new_observations": 2,
+             "realized_value": 0, "errors": []},
+            {"cycle_id": "cycle-2-synthetic-b", "result": "SENSE_COMPLETE",
+             "at": "2026-09-01T11:00:00Z", "new_observations": 0,
+             "refreshed_snapshots": 1, "realized_value": 0, "errors": []},
+        ]
+        observations = [
+            {"fingerprint": "synthetic-one", "status": "OBSERVED"},
+            {"fingerprint": "synthetic-two", "status": "OBSERVED"},
+            {"fingerprint": "synthetic-two", "status": "OBSERVED"},
+        ]
+        state = {
+            "cycle": 2, "counters": {"observed": 3},
+            "last_cycle_result": {
+                "cycle_id": "cycle-2-synthetic-b", "at": "2026-09-01T11:00:00Z",
+                "new_observations": 0, "refreshed_snapshots": 1,
+                "source_errors": [],
+            },
+        }
+        return state, observations, ledger
+
+    def test_sensor_history_reconciles_new_and_refreshed_capture(self):
+        state, observations, ledger = self.synthetic_sensor_history()
+        validator.validate_sensor_history(state, observations, ledger, present=True)
+        busy = dict(at="2026-09-01T11:01:00Z", result="LEASE_BUSY")
+        validator.validate_sensor_history(
+            state, observations, ledger + [busy], present=True)
+
+    def test_missing_duplicate_and_reordered_sensor_evidence_fail_closed(self):
+        state, observations, ledger = self.synthetic_sensor_history()
+        examples = [
+            (state, observations[:-1], ledger),
+            (state, observations + [observations[0]], ledger),
+            (state, observations, ledger[:-1]),
+            (state, observations, list(reversed(ledger))),
+        ]
+        for altered_state, altered_obs, altered_ledger in examples:
+            with self.subTest(rows=len(altered_obs), ledger=len(altered_ledger)):
+                with self.assertRaises(AssertionError):
+                    validator.validate_sensor_history(
+                        altered_state, altered_obs, altered_ledger, present=True)
+
+    def test_sensor_receipt_or_counter_tampering_is_detected(self):
+        state, observations, ledger = self.synthetic_sensor_history()
+        for field, value in (
+            ("observed", 4), ("observed", True), ("observed", 2),
+        ):
+            with self.subTest(field=field, value=value):
+                altered = copy.deepcopy(state)
+                altered["counters"][field] = value
+                with self.assertRaises(AssertionError):
+                    validator.validate_sensor_history(
+                        altered, observations, ledger, present=True)
+        for field, value in (
+            ("new_observations", True),
+            ("new_observations", 1),
+            ("refreshed_snapshots", -1),
+            ("realized_value", 0.0),
+            ("cycle_id", "cycle-2-forged"),
+        ):
+            with self.subTest(field=field):
+                changed = copy.deepcopy(ledger)
+                changed[-1][field] = value
+                with self.assertRaises(AssertionError):
+                    validator.validate_sensor_history(
+                        state, observations, changed, present=True)
+        altered = copy.deepcopy(state)
+        altered["last_cycle_result"]["at"] = "2026-09-01T12:00:00Z"
+        with self.assertRaises(AssertionError):
+            validator.validate_sensor_history(altered, observations, ledger,
+                                              present=True)
+
+    def test_validator_rejects_one_sided_sensor_store(self):
+        (self.root / "observations.ndjson").write_text(
+            '{"status": "OBSERVED"}\n', encoding="utf-8")
+        self.reject()
+
     def test_valid_production_contract_for_each_phase(self):
         for phase in PHASES:
             with self.subTest(phase=phase):
