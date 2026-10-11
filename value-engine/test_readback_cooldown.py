@@ -86,7 +86,7 @@ class CrossRunFeedbackTests(unittest.TestCase):
         self.assertEqual(calls, [4, 5, 6])
         self.assertEqual(result["selected_queue_ranks"], [4, 5, 6])
         self.assertEqual(result["attempted"], 3)
-        self.assertEqual(result["prior_feedback_status"], "USED")
+        self.assertEqual(result["prior_feedback_status"], "SUPPRESSION_APPLIED")
         self.assertEqual(result["eligible_unique_urls"], 7)
         self.assertEqual(result["eligible_after_recent_cooldown"], 4)
         self.assertEqual(
@@ -118,6 +118,7 @@ class CrossRunFeedbackTests(unittest.TestCase):
         after_ttl, after_calls = self.fresh_probe(at=AT + timedelta(hours=7))
         self.assertEqual(after_calls, [1, 2, 3])
         self.assertEqual(after_ttl["recent_readbacks_skipped"], [])
+        self.assertEqual(after_ttl["prior_feedback_status"], "VALID_NO_SUPPRESSION")
 
     def test_changed_source_fingerprint_is_never_suppressed(self):
         self.prior_probe()
@@ -170,6 +171,7 @@ class CrossRunFeedbackTests(unittest.TestCase):
         report, calls = self.fresh_probe()
         self.assertEqual(calls, [1, 2, 3])
         self.assertEqual(report["recent_readbacks_skipped"], [])
+        self.assertEqual(report["prior_feedback_status"], "VALID_NO_SUPPRESSION")
         self.assertFalse(report["authorization_to_execute"])
 
 

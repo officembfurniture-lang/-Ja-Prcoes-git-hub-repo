@@ -240,7 +240,11 @@ at most 2 hours, CLOSED sources for at most 6 hours, and inaccessible
 HTTP 403/404/410 sources for at most 2 hours. Remaining eligible sources
 are considered at the existing max-three-GET budget. The receipt summary
 reports original queue ranks skipped, previous observation class, effective
-eligible count and whether optional feedback was usable.
+eligible count and whether optional feedback **actually changed candidate
+selection**. `VALID_NO_SUPPRESSION` means the previous artifact was valid but
+no source was deferred (for example, after its TTL expired); only
+`SUPPRESSION_APPLIED` denotes a measured selection effect. Neither is proof
+of financial value or external adoption.
 
 These are **retry decisions, not persistent source-state claims**.
 A 404 does not mean a source is closed; a previously closed issue may reopen;
