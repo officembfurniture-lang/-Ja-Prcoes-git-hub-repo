@@ -35,7 +35,7 @@ jobs:
         if: github.event_name == 'workflow_run'
         shell: bash
         env:
-          SENSOR_RUN_ID: \${{ github.event.workflow_run.id }}
+          SENSOR_RUN_ID: ${{ github.event.workflow_run.id }}
         run: |
           set -euo pipefail
           git fetch --no-tags origin main
@@ -45,7 +45,7 @@ jobs:
       - name: Pin baseline to originating persisted sensor commit
         if: github.event_name == 'workflow_run'
         env:
-          SENSOR_SHA: \${{ steps.sensor.outputs.state_commit }}
+          SENSOR_SHA: ${{ steps.sensor.outputs.state_commit }}
         shell: bash
         run: |
           set -euo pipefail
@@ -108,7 +108,7 @@ jobs:
       - name: Preserve bounded non-authoritative paired receipt
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: omega-paired-safety-\${{ github.run_id }}
+          name: omega-paired-safety-${{ github.run_id }}
           retention-days: 7
           if-no-files-found: error
           path: |
