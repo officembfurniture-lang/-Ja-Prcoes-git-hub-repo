@@ -165,6 +165,21 @@ it does not show that an independently controlled actor accepted,
 funded, bought, used, or paid for anything. Financial, delivery, safety
 and consent gates remain separate prior to execution.
 
+## Forward-only sensor archive content checkpoint
+
+Starting with the first completed cycle running this code, the sensor records
+the SHA-256 of the complete **byte content** of `observations.ndjson` in both
+its state and completed-cycle ledger receipt. The validator checks actual bytes
+against this matching pair; triage validates its pinned checkout before queueing
+readback. Unlike row-count reconciliation alone, changing title, body, status,
+or order without changing the number of lines then fails closed.
+
+The checkpoint is **backward-compatible** with pre-feature cycles. It is a
+content integrity proxy, NOT a digital signature, independently immutable
+WORM archive, proof of authentic sources or economic value. A party able to
+rewrite the archive and both receipts could forge a consistent new checkpoint.
+Existing safety and external-verification rules remain unchanged.
+
 ## Three-way append-only sensor history integrity
 
 Every VALUE_ENGINE validation now checks the three files as one accounting

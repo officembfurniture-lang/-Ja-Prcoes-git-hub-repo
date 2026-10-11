@@ -5,6 +5,7 @@ All GitHub responses and clock readings are synthetic. No network or paid work.
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import io
 import urllib.error
 import urllib.request
@@ -95,6 +96,25 @@ class SnapshotRefreshTests(unittest.TestCase):
         )
         ledger = [json.loads(line) for line in self.ledger.read_text().splitlines()]
         return state, rows, ledger
+
+    def test_new_cycle_anchors_actual_archive_bytes_in_both_receipts(self):
+        state, rows, ledger = self.execute(START)
+        expected = hashlib.sha256(self.observations.read_bytes()).hexdigest()
+        self.assertEqual(state["last_cycle_result"]["observations_sha256"], expected)
+        self.assertEqual(ledger[-1]["observations_sha256"], expected)
+        self.assertEqual(len(rows), 1)
+        # A subsequent cycle with no appended observations still seals
+        # the same archive bytes; the digest must not advance by itself.
+        next_state, _, next_ledger = self.execute(START + timedelta(minutes=1))
+        self.assertEqual(next_state["last_cycle_result"]["observations_sha256"], expected)
+        self.assertEqual(next_ledger[-1]["observations_sha256"], expected)
+
+    def test_empty_first_cycle_records_unambiguous_empty_archive_hash(self):
+        state, rows, ledger = self.execute(START, response=[])
+        empty = hashlib.sha256(b"").hexdigest()
+        self.assertEqual(rows, [])
+        self.assertEqual(state["last_cycle_result"]["observations_sha256"], empty)
+        self.assertEqual(ledger[-1]["observations_sha256"], empty)
 
     def test_same_revision_old_readback_is_refreshed_not_new(self):
         prior = self.put_previous(cycle.iso(START))

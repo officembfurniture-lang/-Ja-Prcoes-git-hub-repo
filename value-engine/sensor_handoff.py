@@ -62,6 +62,16 @@ def matches_sensor(state: dict, ledger: dict, run_id: int) -> bool:
     if (result.get("selected") != 0 or result.get("delivered") != 0
             or result.get("paid") != 0 or ledger.get("realized_value") != 0):
         return False
+    # Later cycles include a full-byte archive checksum. Do not allow the two
+    # authoritative in-repository receipts to disagree about that input.
+    state_digest = result.get("observations_sha256")
+    ledger_digest = ledger.get("observations_sha256")
+    if state_digest is not None or ledger_digest is not None:
+        if (not isinstance(state_digest, str)
+                or len(state_digest) != 64
+                or any(ch not in "0123456789abcdef" for ch in state_digest)
+                or state_digest != ledger_digest):
+            return False
     return True
 
 
