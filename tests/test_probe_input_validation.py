@@ -384,6 +384,65 @@ class ProbeBoundaryTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     p0006.build_opportunity_map(case)
 
+    def test_p0006_rejects_finite_inputs_whose_aggregate_mass_overflows(self):
+        case = valid_lineage()
+        case["sources"] = [
+            dict(case["sources"][0], id="S1", mass_kg=1e308),
+            dict(case["sources"][0], id="S2", mass_kg=1e308),
+        ]
+        with self.assertRaisesRegex(ValueError, "mass totals overflowed"):
+            p0006.build_opportunity_map(case)
+
+        # A single source can be matched to two demands, inflating the pairwise
+        # sum while unique source mass remains finite. Both totals need guards.
+        case = valid_lineage()
+        case["sources"][0]["mass_kg"] = 1e308
+        case["demands"].append(dict(case["demands"][0], id="D2"))
+        with self.assertRaisesRegex(ValueError, "mass totals overflowed"):
+            p0006.build_opportunity_map(case)
+
+    def test_p0007_rejects_finite_episodes_that_overflow_total_loss(self):
+        case = valid_backtest()
+        case["policy"]["action_cost"] = 0
+        for episode in case["episodes"]:
+            episode.update(warning_score=0.9, event_occurred=True,
+                           baseline_loss_units=1e308, mitigated_loss_units=1e308)
+        with self.assertRaisesRegex(ValueError, "totals overflowed"):
+            p0007.simulate(case)
+
+        # Aggregate can be finite but one action plus loss can overflow.
+        case = valid_backtest()
+        case["policy"]["action_cost"] = 1e308
+        case["episodes"][0].update(
+            warning_score=0.9, event_occurred=True,
+            baseline_loss_units=1e308, mitigated_loss_units=1e308)
+        with self.assertRaisesRegex(ValueError, "totals overflowed"):
+            p0007.simulate(case)
+
+    def test_p0003_finite_shifted_energy_and_overflow_rejection(self):
+        fixture = {
+            "slot_minutes": 30, "site_capacity_kw": 1e308,
+            "grid_stress": [1e-10] * 3 + [0] * 3,
+            "tasks": [{
+                "id": "heavy", "power_kw": 1e308,
+                "duration_slots": 3, "earliest_slot": 0,
+                "latest_end_slot": 6, "deferrable": True, "priority": 50,
+            }],
+        }
+        report = p0003.analyze_workload(fixture)
+        self.assertEqual(report["moved_task_ids"], ["heavy"])
+        self.assertTrue(math.isfinite(report["planned_shifted_energy_kwh"]))
+        self.assertAlmostEqual(report["planned_shifted_energy_kwh"], 1.5e308)
+        self.assertFalse(report["truth_boundary"]["physical_savings_claimed"])
+
+        second = copy.deepcopy(fixture)
+        second["grid_stress"] = [1e-10] * 4 + [0] * 4
+        second["tasks"][0]["duration_slots"] = 2
+        second["tasks"][0]["latest_end_slot"] = 8
+        second["tasks"].append(dict(second["tasks"][0], id="other"))
+        with self.assertRaisesRegex(ValueError, "shifted energy"):
+            p0003.analyze_workload(second)
+
     def test_p0007_rejects_string_boolean_and_nonfinite_values(self):
         case = valid_backtest()
         case["episodes"][0]["event_occurred"] = "false"

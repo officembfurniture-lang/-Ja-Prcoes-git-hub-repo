@@ -107,3 +107,30 @@ triggering sensor run and `state.json` plus the run ledger. It must not be
 represented as a proven exact-run handoff without that check. Experimental
 branches and PR #1/Issue #2 remain on HOLD; no independent external financial
 outcome was established.
+
+## Cross-probe arithmetic fault injection — 2026-10-11
+
+A finite-input check does not guarantee a finite aggregate. This previously
+affected three otherwise unrelated public probes:
+
+- P-0003: large but finite task power and duration could overflow the
+  aggregate `planned_shifted_energy_kwh` to Infinity even when the
+  weighted-stress objective was finite. Duration multiplication now uses a
+  combined scalar first, and the final aggregate is checked.
+- P-0006: unique source mass and pairwise matched mass could each overflow
+  after adding multiple finite records. Both totals now must remain finite.
+- P-0007: simulated baseline/mitigation/cost totals could overflow during
+  accumulation and the modeled difference could become NaN. Non-finite totals
+  now fail before reporting a simulated outcome.
+
+All three public CLI renderers use `allow_nan=False` for strict JSON;
+this is a second defense against nonstandard Infinity/NaN artifacts.
+Three offline adversarial regressions exercise aggregate overflow and the
+non-overflowing alternative at extreme finite magnitudes. This is a
+numeric/data-format repair, **not** evidence of measured energy, material
+transfer or avoided loss.
+
+The independent immutable package SHAs referenced in README and
+`value-circuit.json` remain historical and are not silently rewritten.
+No claim of verified external use, value capture or return follows merely
+from passing synthetic tests.
