@@ -138,11 +138,40 @@ def analyze_workload(payload: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("task ids must be unique")
 
     baseline_starts, baseline_load = schedule(tasks, grid_stress, site_capacity_kw, grid_aware=False)
-    optimized_starts, optimized_load = schedule(tasks, grid_stress, site_capacity_kw, grid_aware=True)
     slot_hours = slot_minutes / 60
+    baseline_weighted_stress = sum(
+        load * stress * slot_hours for load, stress in zip(baseline_load, grid_stress)
+    )
+    if not math.isfinite(baseline_weighted_stress):
+        raise ValueError("baseline weighted grid stress exceeds the finite numeric range")
+
+    # A local, greedy stress-aware choice can consume a slot needed by a later
+    # task, or produce a higher total stress than the feasible baseline.
+    # Never publish such a candidate as an optimization.
+    try:
+        candidate_starts, candidate_load = schedule(
+            tasks, grid_stress, site_capacity_kw, grid_aware=True
+        )
+    except ValueError:
+        optimized_starts, optimized_load = baseline_starts, baseline_load
+        optimized_weighted_stress = baseline_weighted_stress
+        optimization_selection = "baseline_fallback_heuristic_infeasible"
+    else:
+        candidate_weighted_stress = sum(
+            load * stress * slot_hours for load, stress in zip(candidate_load, grid_stress)
+        )
+        if not math.isfinite(candidate_weighted_stress):
+            raise ValueError("candidate weighted grid stress exceeds the finite numeric range")
+        if candidate_weighted_stress > baseline_weighted_stress:
+            optimized_starts, optimized_load = baseline_starts, baseline_load
+            optimized_weighted_stress = baseline_weighted_stress
+            optimization_selection = "baseline_fallback_higher_stress"
+        else:
+            optimized_starts, optimized_load = candidate_starts, candidate_load
+            optimized_weighted_stress = candidate_weighted_stress
+            optimization_selection = "grid_aware_heuristic"
+
     moved = [task for task in tasks if baseline_starts[task.id] != optimized_starts[task.id]]
-    baseline_weighted_stress = sum(load * stress * slot_hours for load, stress in zip(baseline_load, grid_stress))
-    optimized_weighted_stress = sum(load * stress * slot_hours for load, stress in zip(optimized_load, grid_stress))
     return {
         "schema": SCHEMA,
         "slot_minutes": slot_minutes,
@@ -159,6 +188,7 @@ def analyze_workload(payload: dict[str, Any]) -> dict[str, Any]:
             "peak_kw": max(optimized_load, default=0.0),
             "weighted_grid_stress": round(optimized_weighted_stress, 6),
         },
+        "optimization_selection": optimization_selection,
         "planned_shifted_energy_kwh": round(
             sum(task.power_kw * task.duration_slots * slot_hours for task in moved), 6
         ),

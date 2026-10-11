@@ -80,6 +80,23 @@ The example is pinned to the immutable P-0003 package commit recorded in `value-
 
 The scheduler emits a plan. It never claims physical energy, emissions or financial savings by itself.
 
+**Current mainline P-0003 safety rule (2026-10-11):** The local greedy
+grid-aware candidate is compared with a *feasible greedy baseline* before
+publication. If it dead-ends or has a higher total weighted stress, the
+output returns the baseline unchanged; `optimization_selection` records
+`baseline_fallback_heuristic_infeasible` or
+`baseline_fallback_higher_stress`. A candidate that does not worsen the
+baseline is marked `grid_aware_heuristic`. This guarantees the published
+grid-aware plan is not worse **relative to its computed feasible baseline**,
+not that either greedy schedule is globally optimal or that a feasible plan
+is always found. Weighted scores are modeled quantities, not measured energy,
+cost or climate outcomes.
+
+The immutable SHA in the example above identifies a historical, independently
+addressable package; this note documents the later mainline source change
+and does not silently alter that published SHA.
+
+
 ## Value exchange after evidence
 
 An optional public DOT return rail is recorded in `value-exchange.json`. It was already published by an earlier HORYZONT probe. The repository does not prove control of the address, does not request payment before a verified outcome and reports capture and return as zero until an on-chain receipt is independently observed.

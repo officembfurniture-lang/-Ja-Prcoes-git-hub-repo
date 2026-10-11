@@ -189,6 +189,72 @@ class ProbeBoundaryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             p0003.analyze_workload(case)
 
+    def test_p0003_rejects_higher_total_stress_from_greedy_optimization(self):
+        # Without a dominance check, the local heuristic picks a cheap slot for
+        # a 1 kW task, displacing a mandatory 2 kW task to an expensive slot.
+        workload = {
+            "slot_minutes": 30,
+            "site_capacity_kw": 2,
+            "grid_stress": [2, 1, 5],
+            "tasks": [
+                {"id": "small", "power_kw": 1, "duration_slots": 1,
+                 "earliest_slot": 0, "latest_end_slot": 3, "deferrable": True,
+                 "priority": 1},
+                {"id": "large", "power_kw": 2, "duration_slots": 1,
+                 "earliest_slot": 1, "latest_end_slot": 3, "deferrable": True,
+                 "priority": 0},
+            ],
+        }
+        report = p0003.analyze_workload(workload)
+        self.assertEqual(report["baseline"]["weighted_grid_stress"], 2)
+        self.assertEqual(report["grid_aware"]["weighted_grid_stress"], 2)
+        self.assertEqual(report["grid_aware"]["task_start_slots"],
+                         report["baseline"]["task_start_slots"])
+        self.assertEqual(report["planned_shifted_energy_kwh"], 0)
+        self.assertEqual(report["moved_task_ids"], [])
+        self.assertEqual(report["optimization_selection"],
+                         "baseline_fallback_higher_stress")
+        self.assertFalse(report["truth_boundary"]["physical_savings_claimed"])
+
+    def test_p0003_falls_back_to_feasible_baseline_on_greedy_dead_end(self):
+        workload = {
+            "slot_minutes": 30,
+            "site_capacity_kw": 1,
+            "grid_stress": [5, 5, 4],
+            "tasks": [
+                {"id": "must-use-last-slot", "power_kw": 1, "duration_slots": 1,
+                 "earliest_slot": 2, "latest_end_slot": 3, "deferrable": True,
+                 "priority": 1},
+                {"id": "flex", "power_kw": 1, "duration_slots": 1,
+                 "earliest_slot": 0, "latest_end_slot": 3, "deferrable": True,
+                 "priority": 2},
+            ],
+        }
+        report = p0003.analyze_workload(workload)
+        self.assertEqual(report["baseline"]["task_start_slots"],
+                         {"flex": 0, "must-use-last-slot": 2})
+        self.assertEqual(report["baseline"]["weighted_grid_stress"], 4.5)
+        self.assertEqual(report["grid_aware"]["task_start_slots"],
+                         report["baseline"]["task_start_slots"])
+        self.assertEqual(report["optimization_selection"],
+                         "baseline_fallback_heuristic_infeasible")
+        self.assertEqual(report["planned_shifted_energy_kwh"], 0)
+
+    def test_p0003_still_selects_successful_grid_aware_plan(self):
+        report = p0003.analyze_workload(valid_workload())
+        self.assertEqual(report["optimization_selection"], "grid_aware_heuristic")
+        self.assertEqual(report["moved_task_ids"], ["a"])
+        self.assertLess(report["grid_aware"]["weighted_grid_stress"],
+                        report["baseline"]["weighted_grid_stress"])
+
+    def test_p0003_rejects_overflowing_weighted_objective(self):
+        workload = valid_workload()
+        workload["site_capacity_kw"] = 1e308
+        workload["tasks"][0]["power_kw"] = 1e308
+        workload["grid_stress"] = [1e308] * 4
+        with self.assertRaisesRegex(ValueError, "weighted grid stress"):
+            p0003.analyze_workload(workload)
+
     def test_p0004_rejects_naive_time_and_nonfinite_budget(self):
         case = valid_mandate()
         case["expires_at"] = "2099-01-01T00:00:00"
