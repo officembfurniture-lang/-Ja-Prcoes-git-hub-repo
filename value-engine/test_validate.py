@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import contextlib
 import copy
+import hashlib
 import importlib.util
 import io
 import json
@@ -199,6 +200,48 @@ class ValidationTests(unittest.TestCase):
         (self.root / "run-ledger.ndjson").unlink()
         (self.root / "observations.ndjson").unlink()
         self.reject()
+
+    def anchor_sensor_archive(self):
+        observations = (self.root / "observations.ndjson").read_bytes()
+        digest = hashlib.sha256(observations).hexdigest()
+        self.state["last_cycle_result"]["observations_sha256"] = digest
+        ledger_path = self.root / "run-ledger.ndjson"
+        ledger = [json.loads(line) for line in ledger_path.read_text().splitlines()]
+        ledger[-1]["observations_sha256"] = digest
+        ledger_path.write_text("".join(
+            json.dumps(row) + "\n" for row in ledger), encoding="utf-8")
+        return digest
+
+    def test_byte_anchor_matches_actual_complete_archive(self):
+        digest = self.anchor_sensor_archive()
+        self.assertEqual(len(digest), 64)
+        self.assertEqual(self.check(), 0)
+
+    def test_same_count_mutation_fails_content_anchor(self):
+        self.anchor_sensor_archive()
+        before = (self.root / "observations.ndjson").read_text()
+        after = before.replace("fixture-a", "fixture-x")
+        self.assertNotEqual(before, after)
+        self.assertEqual(len(before.splitlines()), len(after.splitlines()))
+        (self.root / "observations.ndjson").write_text(after)
+        self.reject()
+
+    def test_conflicting_or_malformed_anchor_fails_closed(self):
+        digest = self.anchor_sensor_archive()
+        for altered in ("0" * 64, "invalid", None, True):
+            with self.subTest(altered=altered):
+                self.state["last_cycle_result"]["observations_sha256"] = altered
+                self.reject()
+        self.state["last_cycle_result"]["observations_sha256"] = digest
+        ledger_path = self.root / "run-ledger.ndjson"
+        ledger = [json.loads(line) for line in ledger_path.read_text().splitlines()]
+        ledger[-1]["observations_sha256"] = "0" * 64
+        ledger_path.write_text("".join(
+            json.dumps(row) + "\n" for row in ledger), encoding="utf-8")
+        self.reject()
+
+    def test_legacy_unanchored_history_remains_readable(self):
+        self.assertEqual(self.check(), 0)
 
     def test_valid_production_contract_for_each_phase(self):
         for phase in PHASES:
