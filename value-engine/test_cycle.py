@@ -377,7 +377,7 @@ class StaleReachabilityRegressions(unittest.TestCase):
             item = dict(source_item(), id=number, number=number,
                         html_url=f"https://github.com/example/repo/issues/{number}")
             self.rows.append(cycle.normalize(item, "one", cycle.iso(START)))
-        self.obs.write_text("".join(json.dumps(row) + "\\n" for row in self.rows))
+        self.obs.write_text("".join(json.dumps(row) + "\n" for row in self.rows))
         self.ledger.write_text("")
         self.known = {row["fingerprint"]: START for row in self.rows}
 
@@ -393,7 +393,7 @@ class StaleReachabilityRegressions(unittest.TestCase):
             ],
         }
         with self.ledger.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(row) + "\\n")
+            handle.write(json.dumps(row) + "\n")
 
     def choose(self):
         with (patch.object(cycle, "OBS", self.obs),
