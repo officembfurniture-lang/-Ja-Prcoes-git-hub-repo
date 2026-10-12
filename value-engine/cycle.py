@@ -212,6 +212,42 @@ def recent_failed_direct_readbacks(current: datetime) -> set[str]:
     return failed
 
 
+def historical_failed_direct_readback_times(current: datetime) -> dict[str, datetime]:
+    """Order stale retries behind as-yet-unfailed sources, without hiding URLs.
+
+    The ledger records failures, not every success; this is an ordering hint,
+    never proof that a URL is closed or that an alternative is valuable.
+    No change to the existing 24-hour cooldown or three-GET bound.
+    """
+    latest: dict[str, datetime] = {}
+    if not RUNS.exists():
+        return latest
+    for line in RUNS.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+            stamp = parse_time(row.get("at"))
+            if stamp is None or stamp > current:
+                continue
+            errors = row.get("errors", [])
+            if not isinstance(errors, list):
+                continue
+            for error in errors:
+                if (not isinstance(error, dict)
+                        or error.get("source") != "github_direct_readback"):
+                    continue
+                url = error.get("url")
+                if isinstance(url, str) and ISSUE_URL_RE.fullmatch(url):
+                    previous = latest.get(url)
+                    if previous is None or stamp > previous:
+                        latest[url] = stamp
+        except (ValueError, TypeError, AttributeError, json.JSONDecodeError,
+                OverflowError):
+            continue
+    return latest
+
+
 def select_direct_readbacks(current: datetime, known: dict[str, datetime | None],
                             search_seen_urls: set[str],
                             excluded_urls: set[str] | None = None) -> list[dict]:
@@ -222,6 +258,11 @@ def select_direct_readbacks(current: datetime, known: dict[str, datetime | None]
 
     candidates = []
     excluded_urls = excluded_urls or set()
+    # Preserve old score order when history is absent. Once a candidate has
+    # failed, prefer never-failed stale URLs; then oldest failures. This
+    # improves coverage without lengthening cooldown or granting authority.
+    failed_at = historical_failed_direct_readback_times(current)
+    never_failed = datetime.min.replace(tzinfo=timezone.utc)
     for record in newest_by_url(iter_records(OBS)):
         url = record.get("url")
         if record.get("source") != "github_public_demand" or not isinstance(url, str):
@@ -239,8 +280,13 @@ def select_direct_readbacks(current: datetime, known: dict[str, datetime | None]
         classification = classify(record, current)
         if classification["disposition"] != "HOLD_STALE_OBSERVATION":
             continue
-        candidates.append((-classification["triage_score"], url, record))
-    return [record for _, _, record in sorted(candidates)]
+        previous_failure = failed_at.get(url)
+        candidates.append((
+            previous_failure is not None,
+            previous_failure or never_failed,
+            -classification["triage_score"], url, record,
+        ))
+    return [record for _, _, _, _, record in sorted(candidates)]
 
 
 def normalize(item: dict, query: str, detected_at: str) -> dict:
