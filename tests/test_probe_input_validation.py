@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import copy
 import importlib.util
+import hashlib
 import math
 import os
 import sys
@@ -148,6 +149,70 @@ def valid_backtest():
 
 
 class ProbeBoundaryTests(unittest.TestCase):
+    def test_attestation_rejects_rehashed_invalid_mandates(self):
+        for field, value in (("criteria", []), ("schema", "unsupported"),
+                             ("authority", []), ("evidence_policy", None)):
+            with self.subTest(field=field):
+                mandate = p0004.freeze_mandate(valid_mandate())
+                mandate[field] = value
+                mandate.pop("mandate_hash")
+                mandate["mandate_hash"] = hashlib.sha256(
+                    p0004.canonical_json(mandate).encode()).hexdigest()
+                attestation = {"mandate_hash": mandate["mandate_hash"],
+                               "observed_at": "2026-10-12T00:00:00Z",
+                               "metrics": {"ok": True},
+                               "evidence_refs": ["https://example.org/evidence"]}
+                with self.assertRaises(ValueError):
+                    p0004.evaluate_attestation(mandate, attestation)
+
+    def test_attestation_rejects_nonobject_metrics(self):
+        mandate = p0004.freeze_mandate(valid_mandate())
+        for metrics in (None, [], "ok", 1):
+            with self.subTest(metrics=metrics):
+                with self.assertRaises(ValueError):
+                    p0004.evaluate_attestation(mandate, {
+                        "observed_at": "2026-10-12T00:00:00Z", "metrics": metrics})
+
+    def test_mandate_requires_string_criterion_identity(self):
+        for field, value in (("metric", None), ("metric", 1),
+                             ("metric", " ok "), ("operator", [])):
+            draft = valid_mandate()
+            draft["criteria"][0][field] = value
+            with self.assertRaises(ValueError):
+                p0004.freeze_mandate(draft)
+
+    def test_measurement_rejects_malformed_nested_contracts(self):
+        for field in ("anomaly", "measurement", "decision_rule"):
+            for value in (None, [], "invalid", 7):
+                with self.subTest(field=field, value=value):
+                    draft = valid_measurement()
+                    draft[field] = value
+                    with self.assertRaises(ValueError):
+                        p0005.compile_protocol(draft)
+        for value in (None, [], "invalid", 7):
+            draft = valid_measurement()
+            draft["variables"][0] = value
+            with self.assertRaises(ValueError):
+                p0005.compile_protocol(draft)
+
+    def test_measurement_rejects_nontext_identifiers_and_operators(self):
+        for section, field in (("anomaly", "metric"), ("decision_rule", "metric"),
+                               ("decision_rule", "operator"), ("variable", "name"),
+                               ("variable", "role")):
+            for value in (None, [], {}, 7, True, " "):
+                with self.subTest(section=section, field=field, value=value):
+                    draft = valid_measurement()
+                    target = draft["variables"][0] if section == "variable" else draft[section]
+                    target[field] = value
+                    with self.assertRaises(ValueError):
+                        p0005.compile_protocol(draft)
+
+    def test_measurement_rejects_whitespace_variable_identity(self):
+        draft = valid_measurement()
+        draft["variables"][1]["name"] = " gap_rate "
+        with self.assertRaises(ValueError):
+            p0005.compile_protocol(draft)
+
     def test_positive_smoke_paths_remain_available(self):
         self.assertFalse(p0003.analyze_workload(valid_workload())["truth_boundary"]["physical_savings_claimed"])
         self.assertFalse(p0004.freeze_mandate(valid_mandate())["truth_boundary"]["payment_authorized"])

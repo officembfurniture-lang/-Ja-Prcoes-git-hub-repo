@@ -72,7 +72,7 @@ def validate_draft(draft: dict[str, Any]) -> None:
         if not isinstance(draft.get(key), str) or not draft[key].strip():
             raise ValueError(f"mandate field {key} cannot be empty")
     _parse_time(draft["expires_at"])
-    if draft.get("authority") not in ALLOWED_AUTHORITIES:
+    if not isinstance(draft.get("authority"), str) or draft["authority"] not in ALLOWED_AUTHORITIES:
         raise ValueError("authority must be A0, A1, A2 or A3")
     budget = draft.get("budget")
     amount = budget.get("amount") if isinstance(budget, dict) else None
@@ -93,11 +93,13 @@ def validate_draft(draft: dict[str, Any]) -> None:
     for criterion in criteria:
         if not isinstance(criterion, dict):
             raise ValueError("each outcome criterion must be an object")
-        metric = str(criterion.get("metric", "")).strip()
-        if not metric or metric in metric_names:
+        metric = criterion.get("metric")
+        if (not isinstance(metric, str) or not metric.strip()
+                or metric != metric.strip() or metric in metric_names):
             raise ValueError("criterion metric names must be non-empty and unique")
         metric_names.add(metric)
-        if criterion.get("operator") not in OPERATORS:
+        if (not isinstance(criterion.get("operator"), str)
+                or criterion["operator"] not in OPERATORS):
             raise ValueError(f"unsupported operator for criterion {metric}")
         if "target" not in criterion:
             raise ValueError(f"criterion {metric} requires a target")
@@ -137,17 +139,22 @@ def freeze_mandate(draft: dict[str, Any]) -> dict[str, Any]:
 def evaluate_attestation(mandate: dict[str, Any], attestation: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(mandate, dict) or not isinstance(attestation, dict):
         raise ValueError("mandate and attestation must be objects")
+    validate_draft(mandate)
+    if mandate.get("schema") != SCHEMA:
+        raise ValueError("unsupported mandate schema")
     _reject_non_finite(mandate, "mandate")
     _reject_non_finite(attestation, "attestation")
     mandate_hash = mandate.get("mandate_hash")
     body = {key: value for key, value in mandate.items() if key != "mandate_hash"}
     expected_hash = hashlib.sha256(canonical_json(body).encode("utf-8")).hexdigest()
     integrity_valid = bool(mandate_hash) and mandate_hash == expected_hash
-    observed_at = _parse_time(attestation["observed_at"])
+    observed_at = _parse_time(attestation.get("observed_at"))
     expires_at = _parse_time(mandate["expires_at"])
     unexpired = observed_at <= expires_at
     hash_matches = attestation.get("mandate_hash") == mandate_hash
     metrics = attestation.get("metrics", {})
+    if not isinstance(metrics, dict):
+        raise ValueError("attestation metrics must be an object")
 
     evaluations = []
     for criterion in mandate["criteria"]:

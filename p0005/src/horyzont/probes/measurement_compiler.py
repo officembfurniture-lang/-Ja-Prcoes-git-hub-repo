@@ -54,8 +54,13 @@ def validate_draft(draft: dict[str, Any]) -> None:
     if draft.get("authority") != "A1":
         raise ValueError("the compiler accepts only bounded A1 protocols")
 
-    anomaly = draft.get("anomaly", {})
-    if not str(anomaly.get("metric", "")).strip() or "observed" not in anomaly:
+    for field in ("anomaly", "measurement", "decision_rule"):
+        if not isinstance(draft.get(field), dict):
+            raise ValueError(f"{field} must be an object")
+
+    anomaly = draft["anomaly"]
+    if (not isinstance(anomaly.get("metric"), str)
+            or not anomaly["metric"].strip() or "observed" not in anomaly):
         raise ValueError("anomaly requires a metric and observed value")
 
     variables = draft.get("variables")
@@ -63,11 +68,16 @@ def validate_draft(draft: dict[str, Any]) -> None:
         raise ValueError("at least two declared variables are required")
     names: set[str] = set()
     for variable in variables:
-        name = str(variable.get("name", "")).strip()
-        if not name or name in names:
+        if not isinstance(variable, dict):
+            raise ValueError("each variable must be an object")
+        raw_name = variable.get("name")
+        if not isinstance(raw_name, str):
+            raise ValueError("variable names must be non-empty strings")
+        name = raw_name.strip()
+        if not name or name != raw_name or name in names:
             raise ValueError("variable names must be non-empty and unique")
         names.add(name)
-        if variable.get("role") not in VARIABLE_ROLES:
+        if not isinstance(variable.get("role"), str) or variable["role"] not in VARIABLE_ROLES:
             raise ValueError(f"unsupported variable role for {name}")
     if not any(variable["role"] == "dependent" for variable in variables):
         raise ValueError("a dependent variable is required")
@@ -97,9 +107,10 @@ def validate_draft(draft: dict[str, Any]) -> None:
             raise ValueError(f"hazard.{field} must be boolean")
 
     decision = draft.get("decision_rule", {})
-    if decision.get("operator") not in OPERATORS or "threshold" not in decision:
+    if (not isinstance(decision.get("operator"), str)
+            or decision["operator"] not in OPERATORS or "threshold" not in decision):
         raise ValueError("decision_rule requires a supported operator and threshold")
-    if decision.get("metric") not in names:
+    if not isinstance(decision.get("metric"), str) or decision["metric"] not in names:
         raise ValueError("decision_rule metric must name a declared variable")
 
 
