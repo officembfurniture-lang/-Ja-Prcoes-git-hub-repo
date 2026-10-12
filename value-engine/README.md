@@ -111,8 +111,8 @@ The 219-candidate triage queue does not measure the population of stale
 historical sensor URLs.
 
 Previously, once the 24h sensor cooldown expired, the same highest-score
-404 URLs could repeatedly consume up to three GET slots while untried
-stale URLs remained eligible. The sensor now consults canonical failure
+404 URLs could repeatedly consume up to three GET slots while other
+stale URLs without recorded failures remained eligible. The sensor now consults canonical failure
 receipts to order **never-failed candidates before already-failed ones**,
 and earlier failed attempts before later ones; priority by score and URL
 is preserved within each group. A missing or future-dated receipt never
