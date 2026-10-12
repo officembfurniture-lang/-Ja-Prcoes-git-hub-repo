@@ -2,7 +2,7 @@
   "engine": "VALUE_ENGINE_v2",
   "schema_version": 2,
   "mode": "shadow_until_route_verified",
-  "cycle": 242,
+  "cycle": 243,
   "phase": "IDLE",
   "lease": {
     "cycle_id": null,
@@ -19,7 +19,7 @@
     "cost_savings": []
   },
   "counters": {
-    "observed": 10099,
+    "observed": 10141,
     "verified": 2,
     "selected": 2,
     "produced": 2,
@@ -42,18 +42,30 @@
     "ledger_path": "bounty-engine/ledger.ndjson"
   },
   "last_cycle_result": {
-    "cycle_id": "cycle-242-38269223649",
-    "at": "2026-10-12T15:18:23Z",
-    "new_observations": 41,
-    "refreshed_snapshots": 1,
-    "observations_sha256": "5210ab4f13650fa5ea94921ab5e8c80dc72d9f2ddde1f1ebb1a2462658f1e8c2",
+    "cycle_id": "cycle-243-38319476402",
+    "at": "2026-10-12T22:56:52Z",
+    "new_observations": 42,
+    "refreshed_snapshots": 0,
+    "observations_sha256": "80fa2a7bd4dc087bfbe2b43a07860de28306c4882f2b9f126657597623e82e43",
     "direct_readback_attempts": 3,
-    "direct_readback_captures": 2,
-    "direct_readback_closed": 1,
+    "direct_readback_captures": 0,
+    "direct_readback_closed": 0,
     "source_errors": [
       {
         "source": "github_direct_readback",
-        "url": "https://github.com/Scottcjn/rustchain-bounties/issues/16255",
+        "url": "https://github.com/woahwhattheheck/commons/issues/19313",
+        "error": "HTTPError",
+        "http_status": 404
+      },
+      {
+        "source": "github_direct_readback",
+        "url": "https://github.com/celteducational21-svg/agentic-bounty-hunter/issues/1",
+        "error": "HTTPError",
+        "http_status": 404
+      },
+      {
+        "source": "github_direct_readback",
+        "url": "https://github.com/Scottcjn/Rustchain/issues/165",
         "error": "HTTPError",
         "http_status": 404
       }
