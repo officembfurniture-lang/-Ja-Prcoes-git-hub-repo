@@ -102,6 +102,32 @@ source cannot repeatedly consume the same three-request budget every cycle.
 A timeout, HTTP error or mismatched identity never renews observation freshness.
 The cooldown expires automatically and is not evidence that a source is closed.
 
+### Failed-source selection after cooldown (candidate repair; not promoted)
+
+The sensor's **historical direct GET** is separate from the triage
+`source_probe.py` readback. The sensor's historical 24h failure cooldown
+is not the triage feedback TTL (2h open / 6h closed / 2h 403/404/410).
+The 219-candidate triage queue does not measure the population of stale
+historical sensor URLs.
+
+Previously, once the 24h sensor cooldown expired, the same highest-score
+404 URLs could repeatedly consume up to three GET slots while untried
+stale URLs remained eligible. The sensor now consults canonical failure
+receipts to order **never-failed candidates before already-failed ones**,
+and earlier failed attempts before later ones; priority by score and URL
+is preserved within each group. A missing or future-dated receipt never
+claims a valid source state. The 24h cooldown and strict three-GET cap
+are unchanged. This changes only the order of read-only source requests,
+not source truth, funds, execution authority, verification or settlement.
+
+This is a candidate repair awaiting independent live outcome comparison.
+Offline selection tests demonstrate reachability on constructed cases,
+not higher economic value or universal coverage. A 404 can mean private,
+deleted, renamed, unavailable, or inaccessible; none is converted into
+a permanent source closure. In particular, no confidence should be
+inferred from a green unit test or from growing observation counts.
+
+
 The run ledger separates `direct_readback_attempts`, `direct_readback_captures`
 and `direct_readback_closed`. These are sensor measurements, not confirmed
 payment or adoption. The cap and deterministic ranking prevent unbounded
