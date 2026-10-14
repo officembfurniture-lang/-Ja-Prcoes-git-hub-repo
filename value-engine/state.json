@@ -2,7 +2,7 @@
   "engine": "VALUE_ENGINE_v2",
   "schema_version": 2,
   "mode": "shadow_until_route_verified",
-  "cycle": 251,
+  "cycle": 252,
   "phase": "IDLE",
   "lease": {
     "cycle_id": null,
@@ -19,7 +19,7 @@
     "cost_savings": []
   },
   "counters": {
-    "observed": 10482,
+    "observed": 10518,
     "verified": 2,
     "selected": 2,
     "produced": 2,
@@ -42,18 +42,18 @@
     "ledger_path": "bounty-engine/ledger.ndjson"
   },
   "last_cycle_result": {
-    "cycle_id": "cycle-251-38616502873",
-    "at": "2026-10-14T18:36:12Z",
-    "new_observations": 44,
+    "cycle_id": "cycle-252-38646530955",
+    "at": "2026-10-14T22:17:05Z",
+    "new_observations": 36,
     "refreshed_snapshots": 0,
-    "observations_sha256": "b59d2b9e89587539a7bd17304683d0bdfa013ef2ebfe95f1043adaa506e9b215",
+    "observations_sha256": "557490e7d9f7afaa27b4f1f72f8a4bdedbc39d114588ccdd98b77726c5ec7f09",
     "direct_readback_attempts": 3,
     "direct_readback_captures": 2,
     "direct_readback_closed": 1,
     "source_errors": [
       {
         "source": "github_direct_readback",
-        "url": "https://github.com/402signalhq/402signal/issues/269",
+        "url": "https://github.com/Scottcjn/rustchain-bounties/issues/16255",
         "error": "HTTPError",
         "http_status": 404
       }
