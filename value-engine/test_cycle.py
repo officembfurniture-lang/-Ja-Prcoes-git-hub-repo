@@ -362,5 +362,76 @@ class SnapshotRefreshTests(unittest.TestCase):
         self.assertEqual(state["counters"]["observed"], 2)
 
 
+class StaleReachabilityRegressions(unittest.TestCase):
+    """Real ledger shape, synthetic source responses; no GitHub I/O."""
+
+    def setUp(self):
+        td = tempfile.TemporaryDirectory()
+        self.addCleanup(td.cleanup)
+        root = Path(td.name)
+        self.obs = root / "observations.ndjson"
+        self.ledger = root / "run-ledger.ndjson"
+        self.current = START + timedelta(days=8)
+        self.rows = []
+        for number in range(1, 6):
+            item = dict(source_item(), id=number, number=number,
+                        html_url=f"https://github.com/example/repo/issues/{number}")
+            self.rows.append(cycle.normalize(item, "one", cycle.iso(START)))
+        self.obs.write_text("".join(json.dumps(row) + "\n" for row in self.rows))
+        self.ledger.write_text("")
+        self.known = {row["fingerprint"]: START for row in self.rows}
+
+    def append_failure(self, numbers, at):
+        row = {
+            "at": cycle.iso(at),
+            "result": "SENSE_COMPLETE",
+            "errors": [
+                {"source": "github_direct_readback",
+                 "url": f"https://github.com/example/repo/issues/{number}",
+                 "error": "HTTPError", "http_status": 404}
+                for number in numbers
+            ],
+        }
+        with self.ledger.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(row) + "\n")
+
+    def choose(self):
+        with (patch.object(cycle, "OBS", self.obs),
+              patch.object(cycle, "RUNS", self.ledger)):
+            selected = cycle.select_direct_readbacks(self.current, self.known, set())
+            recent = cycle.recent_failed_direct_readbacks(self.current)
+        return [int(row["url"].rsplit("/", 1)[1]) for row in selected], recent
+
+    def test_without_failure_history_preserves_existing_score_and_url_order(self):
+        selected, recent = self.choose()
+        self.assertEqual(selected, [1, 2, 3, 4, 5])
+        self.assertEqual(recent, set())
+
+    def test_expired_404_does_not_starve_untried_stale_sources(self):
+        # Recorded attempts are 25h old: existing 24h cooldown has expired.
+        self.append_failure([1, 2], self.current - timedelta(hours=25))
+        selected, recent = self.choose()
+        self.assertEqual(recent, set())
+        self.assertEqual(selected[:3], [3, 4, 5])
+        self.assertEqual(set(selected), {1, 2, 3, 4, 5})
+        self.assertEqual(cycle.MAX_DIRECT_READBACKS, 3)
+        self.assertTrue(all(row["primary_source_verified"] is False
+                            and row["realized_value"] == 0 for row in self.rows))
+
+    def test_earlier_failures_win_over_more_recent_failures_after_expiry(self):
+        self.append_failure([1, 2, 3, 4, 5], self.current - timedelta(days=3))
+        self.append_failure([1], self.current - timedelta(hours=25))
+        selected, _ = self.choose()
+        self.assertEqual(selected, [2, 3, 4, 5, 1])
+
+    def test_recent_cooldown_and_future_receipt_still_fail_closed(self):
+        self.append_failure([1], self.current - timedelta(hours=1))
+        self.append_failure([2], self.current + timedelta(hours=2))
+        selected, recent = self.choose()
+        self.assertEqual(selected, [2, 3, 4, 5, 1])
+        self.assertEqual(recent, {"https://github.com/example/repo/issues/1"})
+        self.assertNotIn("https://github.com/example/repo/issues/2", recent)
+
+
 if __name__ == "__main__":
     unittest.main()
