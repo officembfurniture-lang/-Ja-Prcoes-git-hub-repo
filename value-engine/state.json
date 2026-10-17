@@ -2,7 +2,7 @@
   "engine": "VALUE_ENGINE_v2",
   "schema_version": 2,
   "mode": "shadow_until_route_verified",
-  "cycle": 266,
+  "cycle": 267,
   "phase": "IDLE",
   "lease": {
     "cycle_id": null,
@@ -19,7 +19,7 @@
     "cost_savings": []
   },
   "counters": {
-    "observed": 11122,
+    "observed": 11171,
     "verified": 2,
     "selected": 2,
     "produced": 2,
@@ -42,24 +42,18 @@
     "ledger_path": "bounty-engine/ledger.ndjson"
   },
   "last_cycle_result": {
-    "cycle_id": "cycle-266-39025738603",
-    "at": "2026-10-17T10:39:48Z",
-    "new_observations": 42,
-    "refreshed_snapshots": 0,
-    "observations_sha256": "2f32a3bdf84f4ed3f583577374c6f7f8a0d31575e5fc5d4fdfc16268f95b7c5e",
+    "cycle_id": "cycle-267-39039714981",
+    "at": "2026-10-17T14:12:05Z",
+    "new_observations": 48,
+    "refreshed_snapshots": 1,
+    "observations_sha256": "cad566f89b7100341ecdb2de8a648699f17a97635f36fe465659dc3e618dd9c2",
     "direct_readback_attempts": 3,
-    "direct_readback_captures": 1,
+    "direct_readback_captures": 2,
     "direct_readback_closed": 0,
     "source_errors": [
       {
         "source": "github_direct_readback",
-        "url": "https://github.com/Scottcjn/Rustchain/issues/165",
-        "error": "HTTPError",
-        "http_status": 404
-      },
-      {
-        "source": "github_direct_readback",
-        "url": "https://github.com/Scottcjn/rustchain-bounties/issues/16253",
+        "url": "https://github.com/Scottcjn/rustchain-bounties/issues/16255",
         "error": "HTTPError",
         "http_status": 404
       }
