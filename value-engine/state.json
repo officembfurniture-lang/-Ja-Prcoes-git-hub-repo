@@ -2,7 +2,7 @@
   "engine": "VALUE_ENGINE_v2",
   "schema_version": 2,
   "mode": "shadow_until_route_verified",
-  "cycle": 270,
+  "cycle": 271,
   "phase": "IDLE",
   "lease": {
     "cycle_id": null,
@@ -19,7 +19,7 @@
     "cost_savings": []
   },
   "counters": {
-    "observed": 11305,
+    "observed": 11348,
     "verified": 2,
     "selected": 2,
     "produced": 2,
@@ -42,28 +42,15 @@
     "ledger_path": "bounty-engine/ledger.ndjson"
   },
   "last_cycle_result": {
-    "cycle_id": "cycle-270-39074378363",
-    "at": "2026-10-17T22:16:31Z",
-    "new_observations": 45,
-    "refreshed_snapshots": 0,
-    "observations_sha256": "38d39a417b15aba0922dd22c1ea86fe526ae9c29203a64ef8509b65b0cd146d6",
+    "cycle_id": "cycle-271-39081400701",
+    "at": "2026-10-18T00:04:32Z",
+    "new_observations": 42,
+    "refreshed_snapshots": 1,
+    "observations_sha256": "e5a2319026ebb51778fde38b302df71610c442313d79bea936cf1093710c0bb7",
     "direct_readback_attempts": 3,
-    "direct_readback_captures": 1,
-    "direct_readback_closed": 1,
-    "source_errors": [
-      {
-        "source": "github_direct_readback",
-        "url": "https://github.com/mandaputtra/ping-pong-pay/issues/10",
-        "error": "ValueError",
-        "http_status": null
-      },
-      {
-        "source": "github_direct_readback",
-        "url": "https://github.com/Custos-Labs/custos/issues/106",
-        "error": "HTTPError",
-        "http_status": 404
-      }
-    ],
+    "direct_readback_captures": 3,
+    "direct_readback_closed": 2,
+    "source_errors": [],
     "selected": 0,
     "delivered": 0,
     "paid": 0,
