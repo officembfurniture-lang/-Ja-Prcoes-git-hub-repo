@@ -99,6 +99,20 @@ class ClassifyTests(unittest.TestCase):
         ), REF)
         self.assertEqual(result["disposition"], "QUEUE_VERIFY")
 
+    def test_hypothetical_microcredit_strategy_is_not_a_live_customer_offer(self):
+        item = triage.classify(obs(
+            "BOOTSTRAP-001: paid AI work and resource access, then human earnings",
+            "Illustrative transaction, not an actual offer: an outside agent has an "
+            "assigned 10-USDC job and a documented 1-USDC resource cost before payment. "
+            "No suitable first funded customer assignment has been verified by this research. "
+            "Acceptance criteria: document the route. Submit a pull request. "
+            "Payment is released on merge.",
+        ), REF)
+        self.assertEqual(item["disposition"], "HOLD_PRIMARY_SOURCE")
+        self.assertIn("strategy_document_not_direct_offer", item["risks"])
+        self.assertFalse(item["demand_or_reward_verified"])
+        self.assertEqual(item["realized_value"], 0)
+
     def test_third_party_grant_application_is_not_our_reward_offer(self):
         result = triage.classify(obs(
             "Grant application for an event",
