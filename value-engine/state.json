@@ -2,7 +2,7 @@
   "engine": "VALUE_ENGINE_v2",
   "schema_version": 2,
   "mode": "shadow_until_route_verified",
-  "cycle": 271,
+  "cycle": 272,
   "phase": "IDLE",
   "lease": {
     "cycle_id": null,
@@ -19,7 +19,7 @@
     "cost_savings": []
   },
   "counters": {
-    "observed": 11348,
+    "observed": 11394,
     "verified": 2,
     "selected": 2,
     "produced": 2,
@@ -42,15 +42,22 @@
     "ledger_path": "bounty-engine/ledger.ndjson"
   },
   "last_cycle_result": {
-    "cycle_id": "cycle-271-39081400701",
-    "at": "2026-10-18T00:04:32Z",
-    "new_observations": 42,
-    "refreshed_snapshots": 1,
-    "observations_sha256": "e5a2319026ebb51778fde38b302df71610c442313d79bea936cf1093710c0bb7",
+    "cycle_id": "cycle-272-39097196225",
+    "at": "2026-10-18T04:28:27Z",
+    "new_observations": 46,
+    "refreshed_snapshots": 0,
+    "observations_sha256": "a8ee80b2331fad556b9c5eab8addfe0325e0bed3a77a76307b1fa6ec912c4fe4",
     "direct_readback_attempts": 3,
-    "direct_readback_captures": 3,
-    "direct_readback_closed": 2,
-    "source_errors": [],
+    "direct_readback_captures": 2,
+    "direct_readback_closed": 1,
+    "source_errors": [
+      {
+        "source": "github_direct_readback",
+        "url": "https://github.com/Scottcjn/rustchain-bounties/issues/16248",
+        "error": "HTTPError",
+        "http_status": 404
+      }
+    ],
     "selected": 0,
     "delivered": 0,
     "paid": 0,
