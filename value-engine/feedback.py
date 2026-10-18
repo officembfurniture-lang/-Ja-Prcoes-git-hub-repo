@@ -1,6 +1,7 @@
 """Deterministic, read-only next-step selector for the VALUE_ENGINE feedback loop.
 
-It does not execute work, authorize spending, or change repository state.
+The primary focus stays singular; parallel diagnostics are preserved so a
+second active failure is not hidden by first-priority selection.
 """
 from __future__ import annotations
 
@@ -28,12 +29,41 @@ def recommend(report: dict) -> dict:
         focus = "MAINTAIN_AND_MEASURE"
         reason = "No higher-priority funnel gap identified from internal counters."
         next_action = "Continue sensing and require independent evidence for outcomes."
+
+    secondary_diagnostics = []
+    if "zero_direct_readback_captures" in alerts:
+        attempts = int(report.get("last_sensor_direct_readback_attempts", 0) or 0)
+        captures = int(report.get("last_sensor_direct_readback_captures", 0) or 0)
+        http_404s = int(report.get("last_sensor_direct_readback_http_404s", 0) or 0)
+        if attempts > 0 and captures == 0:
+            all_404 = http_404s >= attempts
+            secondary_diagnostics.append({
+                "code": "DIRECT_READBACK_ZERO_CAPTURE_ALL_404" if all_404 else "DIRECT_READBACK_ZERO_CAPTURE",
+                "priority": "SECONDARY",
+                "status": "OPEN",
+                "observed": {
+                    "attempts": attempts,
+                    "captures": captures,
+                    "http_404s": http_404s,
+                },
+                "next_action": (
+                    "Respect the existing cooldown for failed URLs. On the next sensor cycle, "
+                    "inspect one freshly surfaced primary-source candidate and record the exact "
+                    "readback result; do not retry the same failed URL merely to fill the quota."
+                ),
+                "evidence_boundary": (
+                    "HTTP 404 establishes that this read path did not resolve the target; it does "
+                    "not by itself prove deletion, a global source outage, or any payment status."
+                ),
+            })
+
     return {
         "schema_version": 1,
         "mode": "ADVISORY_ONLY",
         "focus": focus,
         "reason": reason,
         "next_action": next_action,
+        "secondary_diagnostics": secondary_diagnostics,
         "authorization_granted": False,
         "external_action_taken": False,
         "evidence_boundary": "Internal counters and alerts only; independently verify before action.",
