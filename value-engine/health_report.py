@@ -24,7 +24,18 @@ def build(root: Path = ROOT) -> dict:
         "accepted": accepted,
         "paid": paid,
         "accepted_without_verified_payment": accepted - paid,
+        # Retained for backward compatibility. This is a raw counter ratio,
+        # not a conversion rate: observed includes appended source revisions
+        # and refreshed snapshots, including repeated reads across cycles.
         "observation_to_verified_ratio": (counters["verified"] / counters["observed"] if counters["observed"] else None),
+        "observation_to_verified_ratio_semantics": (
+            "verified_count / appended_observation_events; NOT a conversion rate "
+            "or unique-opportunity yield"
+        ),
+        "observation_denominator_semantics": (
+            "counters.observed includes new source revisions and refreshed snapshots; "
+            "the same underlying opportunity may appear in multiple observation events"
+        ),
         "verified_to_delivered_ratio": (counters["delivered"] / counters["verified"] if counters["verified"] else None),
         "cash_receipt_count": len(realized["cash"]),
         "diagnostic_alerts": (["unsettled_acceptances"] if accepted > paid else []) + (["no_verified_conversion"] if counters["observed"] > 0 and counters["verified"] == 0 else []),
@@ -37,6 +48,7 @@ def build(root: Path = ROOT) -> dict:
             "Acceptance does not prove payment or cash received.",
             "Do not sum different currencies or infer monetary value.",
             "A sensor observation is not an earned result.",
+            "The observation-to-verified ratio is a raw counter ratio, not a conversion rate; its denominator is not unique opportunities.",
         ],
     }
 
