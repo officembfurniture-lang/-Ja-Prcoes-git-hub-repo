@@ -109,7 +109,7 @@ class SourceProbeTests(unittest.TestCase):
 
     def test_realistic_18k_body_is_captured_in_full_including_tail_risks(self):
         self.write(queue_item())
-        body = ("Acceptance criteria and delivery evidence. " * 430) + "\\nDO NOT START THIS TASK"
+        body = ("Acceptance criteria and delivery evidence. " * 430) + "\nDO NOT START THIS TASK"
         self.assertGreater(len(body), 18_000)
         self.assertLessEqual(len(body), source_probe.MAX_SOURCE_BODY_CHARS)
         self.run_probe(lambda url, token: live_issue(body=body))
