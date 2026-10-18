@@ -296,9 +296,12 @@ starting work or required depositing funds, the downstream stage emitted only
 `RE_TRIAGE_CHANGED_SOURCE` without using the available text.
 
 The readback receipt now retains the current source title, at most the first
-4000 characters of its public body, and an explicit truncation flag. The
-existing readback decision stage checks the current source fields, verifies
-the hash against those fields **when the entire body fits in the excerpt**,
+24,000 characters of its public body, and an explicit truncation flag. This
+covers the current 11,961- and 18,371-character candidate bodies while keeping
+a hard per-source artifact bound. Longer bodies remain explicitly truncated
+and cannot be treated as risk-free. The existing readback decision stage checks
+the current source fields, verifies the hash against those fields **when the
+entire body fits in the excerpt**,
 and applies the same conservative hold rules used in `triage.py`. Changed
 issue text that states a start prohibition, capital requirement, dependency,
 unconfirmed reward, human approval gate or non-primary offer is held as such
