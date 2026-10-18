@@ -53,6 +53,13 @@ SELLER_PROPOSAL_MARKERS = (
     "paid pilot inquiry",
 )
 
+# Strategy/research notes may contain prices and payment mechanics as examples,
+# without describing an available, buyer-assigned task.
+NON_OFFER_STRATEGY_MARKERS = (
+    "illustrative transaction, not an actual offer",
+    "no suitable first funded customer assignment has been verified",
+)
+
 WALLET_DEPENDENCY_RE = re.compile(
     r"\b(?:requires?|needs?)\s+(?:an?\s+)?(?:authorized\s+)?funded\s+"
     r"[^.\n]{0,60}\bwallet\b|"
@@ -161,6 +168,10 @@ def classify(record: dict, reference_time: datetime) -> dict:
         risks.append("seller_proposal_not_buyer_demand")
         score -= 12
 
+    if phrase(text, *NON_OFFER_STRATEGY_MARKERS):
+        risks.append("strategy_document_not_direct_offer")
+        score -= 12
+
     if explicitly_unfunded or phrase(
         text,
         "proposed bounty",
@@ -251,6 +262,7 @@ def classify(record: dict, reference_time: datetime) -> dict:
     elif any(risk in risks for risk in (
         "mirror_or_radar_source", "discovery_report_not_direct_offer",
         "grant_application_not_direct_offer", "seller_proposal_not_buyer_demand",
+        "strategy_document_not_direct_offer",
     )):
         disposition = "HOLD_PRIMARY_SOURCE"
     elif "capital_required" in risks or "potential_payment_liability" in risks:
