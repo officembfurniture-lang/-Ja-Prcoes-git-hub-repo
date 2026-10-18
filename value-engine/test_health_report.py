@@ -69,6 +69,29 @@ class HealthReportTests(unittest.TestCase):
             self.assertEqual(report["last_sensor_direct_readback_captures"], 0)
             self.assertEqual(report["last_sensor_direct_readback_http_404s"], 3)
 
+    def test_partial_404s_remain_visible_when_another_readback_succeeds(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "state.json").write_text(json.dumps({
+                "engine": "VALUE_ENGINE_v2", "cycle": 274, "phase": "IDLE",
+                "counters": {"observed": 11482, "verified": 2, "delivered": 2,
+                             "accepted": 2, "paid": 2},
+                "realized": {"cash": []},
+                "last_cycle_result": {
+                    "direct_readback_attempts": 3,
+                    "direct_readback_captures": 1,
+                    "direct_readback_closed": 0,
+                    "source_errors": [
+                        {"source": "github_direct_readback", "http_status": 404},
+                        {"source": "github_direct_readback", "http_status": 404},
+                    ],
+                },
+            }), encoding="utf-8")
+            report = health_report.build(root)
+            self.assertIn("direct_readback_http_404", report["diagnostic_alerts"])
+            self.assertNotIn("zero_direct_readback_captures", report["diagnostic_alerts"])
+            self.assertEqual(report["last_sensor_direct_readback_http_404s"], 2)
+
     def test_zero_observations_has_no_fake_conversion_rate(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
