@@ -61,6 +61,10 @@ def parse_time(value: str | None) -> datetime | None:
 SNAPSHOT_REFRESH_AFTER = timedelta(days=6)
 MAX_DIRECT_READBACKS = 3
 DIRECT_FAILURE_COOLDOWN = timedelta(hours=24)
+# A 404/410 is a missing or inaccessible locator, not proof that the offer is
+# closed. Back off an unchanged locator for one snapshot TTL; a newly discovered
+# revision bypasses this URL-level cooldown and can be read immediately.
+DIRECT_NOT_FOUND_COOLDOWN = SNAPSHOT_REFRESH_AFTER
 ISSUE_URL_RE = re.compile(r"https://github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)/issues/([1-9][0-9]*)\Z")
 
 
@@ -187,7 +191,12 @@ def github_issue_readback(url: str, token: str | None) -> dict:
 
 
 def recent_failed_direct_readbacks(current: datetime) -> set[str]:
-    """Durable 24h retry budget from canonical run-ledger error receipts."""
+    """Suppress unchanged failed locators temporarily, without freezing candidates.
+
+    Stable 404/410 locators get one snapshot TTL before another GET. Other
+    failures use the shorter transient-error cooldown. Freshly discovered
+    revisions are not suppressed by this URL-level retry budget.
+    """
     failed: set[str] = set()
     if not RUNS.exists():
         return failed
@@ -200,13 +209,21 @@ def recent_failed_direct_readbacks(current: datetime) -> set[str]:
             if stamp is None or stamp.utcoffset() is None:
                 continue
             age = current - stamp.astimezone(timezone.utc)
-            if age < timedelta(0) or age >= DIRECT_FAILURE_COOLDOWN:
+            if age < timedelta(0):
                 continue
             for error in row.get("errors", []):
-                if isinstance(error, dict) and error.get("source") == "github_direct_readback":
-                    url = error.get("url")
-                    if isinstance(url, str) and ISSUE_URL_RE.fullmatch(url):
-                        failed.add(url)
+                if not isinstance(error, dict) or error.get("source") != "github_direct_readback":
+                    continue
+                url = error.get("url")
+                if not isinstance(url, str) or ISSUE_URL_RE.fullmatch(url) is None:
+                    continue
+                cooldown = (
+                    DIRECT_NOT_FOUND_COOLDOWN
+                    if error.get("http_status") in (404, 410)
+                    else DIRECT_FAILURE_COOLDOWN
+                )
+                if age < cooldown:
+                    failed.add(url)
         except (ValueError, TypeError, AttributeError, json.JSONDecodeError, OverflowError):
             continue
     return failed
@@ -237,7 +254,13 @@ def select_direct_readbacks(current: datetime, known: dict[str, datetime | None]
                                       or current - last_seen < SNAPSHOT_REFRESH_AFTER):
             continue
         classification = classify(record, current)
-        if classification["disposition"] != "HOLD_STALE_OBSERVATION":
+        # A stored CLOSED state must not become a permanent tombstone: a source
+        # can reopen or its locator can move. Re-read stale closed snapshots on
+        # the same bounded cadence as other stale snapshots; only a fresh GET
+        # may move the source back into the open candidate queue.
+        if classification["disposition"] not in (
+            "HOLD_STALE_OBSERVATION", "HOLD_SOURCE_CLOSED"
+        ):
             continue
         candidates.append((-classification["triage_score"], url, record))
     return [record for _, _, record in sorted(candidates)]
