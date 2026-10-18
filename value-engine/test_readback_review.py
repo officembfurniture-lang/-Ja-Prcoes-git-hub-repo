@@ -139,7 +139,7 @@ class ReadbackReviewTests(unittest.TestCase):
         self.assertFalse(summary["primary_source_verified"])
 
     def test_full_body_with_tail_prohibition_is_held_not_truncated(self):
-        body = ("Ordinary issue details. " * 430) + "\nDO NOT START THIS TASK"
+        body = ("Ordinary issue details. " * 800) + "\nDO NOT START THIS TASK"
         self.assertGreater(len(body), 18_000)
         self.assertLessEqual(len(body), readback_review.MAX_SOURCE_BODY_CHARS)
         self.prepare(lambda url, token: dict(
