@@ -47,7 +47,7 @@ def recommend(report: dict) -> dict:
                 next_action = (
                     "Do not convert HTTP 404 into a closed-task decision. Back off an unchanged "
                     "404/410 locator for one six-day snapshot TTL, keep rotating through other "
-                    "candidates, and re-read stale closed snapshots. Do not retry the same failed "
+                    "candidates, and re-read stale closed snapshots. do not retry the same failed "
                     "URL merely to fill the quota. A newly discovered source revision bypasses "
                     "the old locator cooldown."
                 )
