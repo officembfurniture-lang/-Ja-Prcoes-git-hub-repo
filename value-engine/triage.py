@@ -168,6 +168,10 @@ def classify(record: dict, reference_time: datetime) -> dict:
         risks.append("seller_proposal_not_buyer_demand")
         score -= 12
 
+    if phrase(text, *NON_OFFER_STRATEGY_MARKERS):
+        risks.append("strategy_document_not_direct_offer")
+        score -= 12
+
     if explicitly_unfunded or phrase(
         text,
         "proposed bounty",
