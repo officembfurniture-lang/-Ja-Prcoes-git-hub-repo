@@ -14,6 +14,7 @@ from collections import Counter
 from pathlib import Path
 
 from cycle import ISSUE_URL_RE
+from source_probe import MAX_SOURCE_BODY_CHARS
 from triage import classify, parse_time
 
 SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
@@ -132,7 +133,7 @@ def review(queue_data: bytes, receipt_data: bytes, probe_data: bytes) -> tuple[l
             truncated = receipt.get("source_body_truncated")
             updated_at = receipt.get("source_updated_at")
             if (not isinstance(title, str) or not title.strip() or len(title) > 1000
-                    or not isinstance(excerpt, str) or len(excerpt) > 4000
+                    or not isinstance(excerpt, str) or len(excerpt) > MAX_SOURCE_BODY_CHARS
                     or type(truncated) is not bool
                     or not isinstance(updated_at, str)
                     or parse_time(updated_at) is None
@@ -192,7 +193,7 @@ def review(queue_data: bytes, receipt_data: bytes, probe_data: bytes) -> tuple[l
                 decision = "RE_TRIAGE_TRUNCATED_SOURCE"
                 next_step = (
                     "Read remaining original issue body before any full review; "
-                    "the 4000-character excerpt cannot establish absence of risk."
+                    f"the {MAX_SOURCE_BODY_CHARS}-character excerpt cannot establish absence of risk."
                 )
             elif receipt["source_title_changed"] or receipt["source_updated_at_changed"]:
                 decision = "RE_TRIAGE_CHANGED_SOURCE"
