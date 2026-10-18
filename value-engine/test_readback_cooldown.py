@@ -141,13 +141,15 @@ class CrossRunFeedbackTests(unittest.TestCase):
             if n == 1:
                 # Same title and updated_at as the queued snapshot, but the
                 # body exceeds the 24k bound and remains explicitly truncated.
-                return live_issue(
-                    n, updated="2026-10-11T10:00:00Z",
-                    body=("Long but otherwise benign source detail. " * 900),
-                )
+                issue = live_issue(n, updated="2026-10-11T10:00:00Z")
+                issue["body"] = "Long but otherwise benign source detail. " * 900
+                return issue
             return live_issue(n)
 
         self.prior_probe(fetch)
+        prior_receipts = [json.loads(line) for line in
+                          self.old_readbacks.read_text().splitlines()]
+        self.assertIs(prior_receipts[0]["source_body_truncated"], True)
         result, calls = self.fresh_probe(at=AT + timedelta(hours=3))
         self.assertEqual(calls, [2, 3, 4])
         self.assertEqual(result["recent_readbacks_skipped"], [
