@@ -84,7 +84,7 @@ def review(queue_data: bytes, receipt_data: bytes, probe_data: bytes) -> tuple[l
     queue = records(queue_data, "queue")
     receipts = records(receipt_data, "readbacks")
     probe = object_json(probe_data, "probe summary")
-    if (probe.get("schema") != "value-engine.source-readback/v1"
+    if (probe.get("schema") != "value-engine.source-readback/v2"
             or probe.get("stage") != "SOURCE_READBACK_NON_AUTHORITATIVE"
             or probe.get("queue_sha256") != sha256(queue_data)
             or type(probe.get("queue_count")) is not int
@@ -237,7 +237,7 @@ def review(queue_data: bytes, receipt_data: bytes, probe_data: bytes) -> tuple[l
 
     counts = dict(sorted(Counter(d["review_decision"] for d in decisions).items()))
     summary = {
-        "schema": "value-engine.readback-review/v1",
+        "schema": "value-engine.readback-review/v2",
         "stage": "READBACK_DECISION_PRE_VERIFY",
         "queue_sha256": sha256(queue_data),
         "readbacks_sha256": sha256(receipt_data),
