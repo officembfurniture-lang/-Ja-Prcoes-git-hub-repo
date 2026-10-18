@@ -262,6 +262,7 @@ def classify(record: dict, reference_time: datetime) -> dict:
     elif any(risk in risks for risk in (
         "mirror_or_radar_source", "discovery_report_not_direct_offer",
         "grant_application_not_direct_offer", "seller_proposal_not_buyer_demand",
+        "strategy_document_not_direct_offer",
     )):
         disposition = "HOLD_PRIMARY_SOURCE"
     elif "capital_required" in risks or "potential_payment_liability" in risks:
