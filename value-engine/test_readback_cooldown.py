@@ -152,6 +152,18 @@ class CrossRunFeedbackTests(unittest.TestCase):
         self.assertEqual(result["recent_readbacks_skipped"], [])
         self.assertEqual(result["prior_feedback_status"], "VALID_NO_SUPPRESSION")
 
+    def test_legacy_v1_truncated_receipts_cannot_suppress_new_full_body_reads(self):
+        self.prior_probe()
+        summary = json.loads(self.old_summary.read_text())
+        summary["schema"] = "value-engine.source-readback/v1"
+        self.old_summary.write_text(json.dumps(summary), encoding="utf-8")
+
+        result, calls = self.fresh_probe(at=AT + timedelta(minutes=1))
+        self.assertEqual(calls, [1, 2, 3])
+        self.assertEqual(result["prior_feedback_status"],
+                         "INVALID_FALLBACK_TO_FRESH_GET")
+        self.assertEqual(result["recent_readbacks_skipped"], [])
+
     def test_malformed_prior_artifacts_fall_back_to_fresh_get(self):
         self.prior_probe()
         original = self.old_readbacks.read_bytes()
