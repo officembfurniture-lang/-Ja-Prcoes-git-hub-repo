@@ -110,7 +110,8 @@ class CrossRunFeedbackTests(unittest.TestCase):
         skipped = readback_cooldown.recent_readback_suppressions(
             self.previous, at, current)
         self.assertEqual(skipped, {
-            "https://github.com/example/repo/issues/1": "READBACK_CLOSED"})
+            "https://github.com/example/repo/issues/1": "READBACK_CLOSED",
+            "https://github.com/example/repo/issues/2": "READBACK_FAILED"})
         result, calls = self.fresh_probe(at=at)
         self.assertEqual(calls, [3, 4, 5])
         self.assertEqual(result["recent_readbacks_skipped"], [
