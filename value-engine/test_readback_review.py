@@ -139,7 +139,7 @@ class ReadbackReviewTests(unittest.TestCase):
         self.assertFalse(summary["primary_source_verified"])
 
     def test_full_body_with_tail_prohibition_is_held_not_truncated(self):
-        body = ("Ordinary issue details. " * 430) + "\\nDO NOT START THIS TASK"
+        body = ("Ordinary issue details. " * 430) + "\nDO NOT START THIS TASK"
         self.assertGreater(len(body), 18_000)
         self.assertLessEqual(len(body), readback_review.MAX_SOURCE_BODY_CHARS)
         self.prepare(lambda url, token: dict(
@@ -148,10 +148,7 @@ class ReadbackReviewTests(unittest.TestCase):
         self.assertEqual(summary["review_decisions"], {"HOLD_START_PROHIBITED": 3})
         self.assertTrue(all(not row["source_body_truncated"] for row in rows))
         self.assertTrue(all("DO NOT START THIS TASK" in
-                            next(x["source_body_excerpt"] for x in
-                                 [json.loads(line) for line in self.receipts.read_text().splitlines()]
-                                 if x["queue_rank"] == row["queue_rank"])
-                            for row in rows))
+                            row["source_body_excerpt"] for row in rows))
         self.assertFalse(summary["authorization_to_execute"])
 
     def test_source_body_or_drift_flag_tampering_is_rejected(self):
