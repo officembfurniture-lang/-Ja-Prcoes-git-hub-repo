@@ -112,10 +112,14 @@ class CrossRunFeedbackTests(unittest.TestCase):
         self.assertEqual(skipped, {
             "https://github.com/example/repo/issues/1": "READBACK_CLOSED"})
         result, calls = self.fresh_probe(at=at)
-        self.assertEqual(calls, [2, 3, 4])
-        self.assertEqual(result["recent_readbacks_skipped"],
-                         [{"queue_rank": 1, "prior_status": "READBACK_CLOSED"}])
-        after_ttl, after_calls = self.fresh_probe(at=AT + timedelta(hours=7))
+        self.assertEqual(calls, [3, 4, 5])
+        self.assertEqual(result["recent_readbacks_skipped"], [
+            {"queue_rank": 1, "prior_status": "READBACK_CLOSED"},
+            {"queue_rank": 2, "prior_status": "READBACK_FAILED"},
+        ])
+        # Closed records and a stable 404 are temporary readback hints, not
+        # permanent tombstones. Both become eligible after their TTLs expire.
+        after_ttl, after_calls = self.fresh_probe(at=AT + timedelta(days=7))
         self.assertEqual(after_calls, [1, 2, 3])
         self.assertEqual(after_ttl["recent_readbacks_skipped"], [])
         self.assertEqual(after_ttl["prior_feedback_status"], "VALID_NO_SUPPRESSION")
@@ -129,6 +133,23 @@ class CrossRunFeedbackTests(unittest.TestCase):
         self.assertEqual(calls, [1, 4, 5])
         self.assertEqual(report["selected_queue_ranks"], [1, 4, 5])
         self.assertEqual(len(report["recent_readbacks_skipped"]), 2)
+
+    def test_404_cooldown_does_not_freeze_a_new_source_revision(self):
+        def fetch(url, token):
+            n = int(url.rsplit("/", 1)[1])
+            if n == 2:
+                raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)
+            return live_issue(n)
+
+        self.prior_probe(fetch)
+        changed = [dict(row) for row in self.rows]
+        changed[1]["fingerprint"] = "newly-discovered-revision"
+        self.write_queue(changed, self.queue)
+
+        result, calls = self.fresh_probe(at=AT + timedelta(hours=3))
+        self.assertIn(2, calls)
+        self.assertEqual(result["recent_readbacks_skipped"], [])
+        self.assertEqual(result["prior_feedback_status"], "VALID_NO_SUPPRESSION")
 
     def test_malformed_prior_artifacts_fall_back_to_fresh_get(self):
         self.prior_probe()
