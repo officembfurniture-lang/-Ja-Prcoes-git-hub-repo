@@ -31,14 +31,34 @@ def recommend(report: dict) -> dict:
         next_action = "Continue sensing and require independent evidence for outcomes."
 
     secondary_diagnostics = []
-    if "zero_direct_readback_captures" in alerts:
+    if ("zero_direct_readback_captures" in alerts
+            or "direct_readback_http_404" in alerts):
         attempts = int(report.get("last_sensor_direct_readback_attempts", 0) or 0)
         captures = int(report.get("last_sensor_direct_readback_captures", 0) or 0)
         http_404s = int(report.get("last_sensor_direct_readback_http_404s", 0) or 0)
-        if attempts > 0 and captures == 0:
-            all_404 = http_404s >= attempts
+        if attempts > 0 and captures == 0 and http_404s >= attempts:
+            diagnostic_code = "DIRECT_READBACK_ZERO_CAPTURE_ALL_404"
+        elif http_404s > 0:
+            diagnostic_code = "DIRECT_READBACK_404_RETRY_CHAIN"
+        else:
+            diagnostic_code = "DIRECT_READBACK_ZERO_CAPTURE"
+        if attempts > 0 and (captures < attempts or http_404s > 0):
+            if http_404s > 0:
+                next_action = (
+                    "Do not convert HTTP 404 into a closed-task decision. Back off an unchanged "
+                    "404/410 locator for one six-day snapshot TTL, keep rotating through other "
+                    "candidates, and re-read stale closed snapshots. do not retry the same failed "
+                    "URL merely to fill the quota. A newly discovered source revision bypasses "
+                    "the old locator cooldown."
+                )
+            else:
+                next_action = (
+                    "Respect the transient-error cooldown. On the next sensor cycle, inspect a "
+                    "freshly surfaced primary-source candidate and record the exact readback result; "
+                    "do not retry the same failed URL merely to fill the quota."
+                )
             secondary_diagnostics.append({
-                "code": "DIRECT_READBACK_ZERO_CAPTURE_ALL_404" if all_404 else "DIRECT_READBACK_ZERO_CAPTURE",
+                "code": diagnostic_code,
                 "priority": "SECONDARY",
                 "status": "OPEN",
                 "observed": {
@@ -46,14 +66,11 @@ def recommend(report: dict) -> dict:
                     "captures": captures,
                     "http_404s": http_404s,
                 },
-                "next_action": (
-                    "Respect the existing cooldown for failed URLs. On the next sensor cycle, "
-                    "inspect one freshly surfaced primary-source candidate and record the exact "
-                    "readback result; do not retry the same failed URL merely to fill the quota."
-                ),
+                "next_action": next_action,
                 "evidence_boundary": (
                     "HTTP 404 establishes that this read path did not resolve the target; it does "
-                    "not by itself prove deletion, a global source outage, or any payment status."
+                    "not by itself prove deletion, task closure, a global source outage, or any "
+                    "payment status."
                 ),
             })
 

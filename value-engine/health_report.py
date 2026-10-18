@@ -27,6 +27,7 @@ def build(root: Path = ROOT) -> dict:
         (["unsettled_acceptances"] if accepted > paid else [])
         + (["no_verified_conversion"] if counters["observed"] > 0 and counters["verified"] == 0 else [])
         + (["zero_direct_readback_captures"] if direct_attempts > 0 and direct_captures == 0 else [])
+        + (["direct_readback_http_404"] if direct_404s > 0 else [])
     )
     return {
         "diagnostic_version": 1,

@@ -30,6 +30,25 @@ class FeedbackTests(unittest.TestCase):
         self.assertFalse(result["authorization_granted"])
         self.assertFalse(result["external_action_taken"])
 
+    def test_partial_404_chain_is_visible_even_with_a_successful_capture(self):
+        result = recommend({
+            "diagnostic_alerts": ["direct_readback_http_404"],
+            "verified": 2,
+            "delivered": 2,
+            "last_sensor_direct_readback_attempts": 3,
+            "last_sensor_direct_readback_captures": 1,
+            "last_sensor_direct_readback_http_404s": 2,
+        })
+        self.assertEqual(result["focus"], "MAINTAIN_AND_MEASURE")
+        self.assertEqual(len(result["secondary_diagnostics"]), 1)
+        diagnostic = result["secondary_diagnostics"][0]
+        self.assertEqual(diagnostic["code"], "DIRECT_READBACK_404_RETRY_CHAIN")
+        self.assertIn("six-day snapshot TTL", diagnostic["next_action"])
+        self.assertIn("stale closed snapshots", diagnostic["next_action"])
+        self.assertIn("does not by itself prove deletion", diagnostic["evidence_boundary"])
+        self.assertFalse(result["authorization_granted"])
+        self.assertFalse(result["external_action_taken"])
+
     def test_source_quality_when_no_verified_opportunities(self):
         self.assertEqual(recommend({"diagnostic_alerts": ["no_verified_conversion"]})["focus"], "REVIEW_SOURCE_QUALITY")
 
