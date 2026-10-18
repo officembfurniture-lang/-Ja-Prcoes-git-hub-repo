@@ -13,6 +13,21 @@ def build(root: Path = ROOT) -> dict:
     realized = state["realized"]
     accepted = counters["accepted"]
     paid = counters["paid"]
+    last_cycle = state.get("last_cycle_result") or {}
+    source_errors = last_cycle.get("source_errors") or []
+    direct_readback_errors = [
+        error for error in source_errors
+        if isinstance(error, dict) and error.get("source") == "github_direct_readback"
+    ]
+    direct_attempts = int(last_cycle.get("direct_readback_attempts", 0) or 0)
+    direct_captures = int(last_cycle.get("direct_readback_captures", 0) or 0)
+    direct_closed = int(last_cycle.get("direct_readback_closed", 0) or 0)
+    direct_404s = sum(1 for error in direct_readback_errors if error.get("http_status") == 404)
+    diagnostic_alerts = (
+        (["unsettled_acceptances"] if accepted > paid else [])
+        + (["no_verified_conversion"] if counters["observed"] > 0 and counters["verified"] == 0 else [])
+        + (["zero_direct_readback_captures"] if direct_attempts > 0 and direct_captures == 0 else [])
+    )
     return {
         "diagnostic_version": 1,
         "engine": state["engine"],
@@ -25,8 +40,8 @@ def build(root: Path = ROOT) -> dict:
         "paid": paid,
         "accepted_without_verified_payment": accepted - paid,
         # Retained for backward compatibility. This is a raw counter ratio,
-        # not a conversion rate: observed includes appended source revisions
-        # and refreshed snapshots, including repeated reads across cycles.
+        # not a conversion rate: observed includes appended observation events
+        # and refreshed snapshots, sometimes for the same underlying opportunity.
         "observation_to_verified_ratio": (counters["verified"] / counters["observed"] if counters["observed"] else None),
         "observation_to_verified_ratio_semantics": (
             "verified_count / appended_observation_events; NOT a conversion rate "
@@ -38,9 +53,14 @@ def build(root: Path = ROOT) -> dict:
         ),
         "verified_to_delivered_ratio": (counters["delivered"] / counters["verified"] if counters["verified"] else None),
         "cash_receipt_count": len(realized["cash"]),
-        "diagnostic_alerts": (["unsettled_acceptances"] if accepted > paid else []) + (["no_verified_conversion"] if counters["observed"] > 0 and counters["verified"] == 0 else []),
+        "diagnostic_alerts": diagnostic_alerts,
+        "last_sensor_direct_readback_attempts": direct_attempts,
+        "last_sensor_direct_readback_captures": direct_captures,
+        "last_sensor_direct_readback_closed": direct_closed,
+        "last_sensor_direct_readback_http_404s": direct_404s,
+        "last_sensor_direct_readback_error_count": len(direct_readback_errors),
         "external_cash_amount": None,
-        "last_sensor_new_observations": state.get("last_cycle_result", {}).get("new_observations"),
+        "last_sensor_new_observations": last_cycle.get("new_observations"),
         "independent_validation": "not established by this report",
         "external_use": "not established by this report",
         "notes": [
@@ -49,6 +69,7 @@ def build(root: Path = ROOT) -> dict:
             "Do not sum different currencies or infer monetary value.",
             "A sensor observation is not an earned result.",
             "The observation-to-verified ratio is a raw counter ratio, not a conversion rate; its denominator is not unique opportunities.",
+            "Zero direct readback captures diagnose the last sensor cycle only; they do not establish a global source outage, source deletion, or payment status."
         ],
     }
 

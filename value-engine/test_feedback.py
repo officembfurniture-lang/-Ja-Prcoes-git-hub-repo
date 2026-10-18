@@ -11,6 +11,25 @@ class FeedbackTests(unittest.TestCase):
         self.assertFalse(result["authorization_granted"])
         self.assertFalse(result["external_action_taken"])
 
+    def test_settlement_priority_preserves_parallel_sensor_failure(self):
+        result = recommend({
+            "diagnostic_alerts": ["unsettled_acceptances", "zero_direct_readback_captures"],
+            "verified": 2,
+            "delivered": 2,
+            "last_sensor_direct_readback_attempts": 3,
+            "last_sensor_direct_readback_captures": 0,
+            "last_sensor_direct_readback_http_404s": 3,
+        })
+        self.assertEqual(result["focus"], "VERIFY_SETTLEMENT")
+        self.assertEqual(len(result["secondary_diagnostics"]), 1)
+        diagnostic = result["secondary_diagnostics"][0]
+        self.assertEqual(diagnostic["code"], "DIRECT_READBACK_ZERO_CAPTURE_ALL_404")
+        self.assertEqual(diagnostic["observed"], {"attempts": 3, "captures": 0, "http_404s": 3})
+        self.assertIn("do not retry the same failed URL", diagnostic["next_action"])
+        self.assertIn("does not by itself prove deletion", diagnostic["evidence_boundary"])
+        self.assertFalse(result["authorization_granted"])
+        self.assertFalse(result["external_action_taken"])
+
     def test_source_quality_when_no_verified_opportunities(self):
         self.assertEqual(recommend({"diagnostic_alerts": ["no_verified_conversion"]})["focus"], "REVIEW_SOURCE_QUALITY")
 
