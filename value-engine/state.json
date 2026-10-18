@@ -15,7 +15,30 @@
   "last_transition": "SENSE -> IDLE",
   "realized": {
     "cash": [],
-    "verified_non_cash": [],
+    "verified_non_cash": [
+      {
+        "opportunity_id": "Scottcjn/rustchain-bounties#13949",
+        "amount": 2,
+        "currency": "RTC",
+        "received_at": "2026-09-12T14:20:01Z",
+        "transaction_status": "confirmed",
+        "transaction_hash": "5a33672d476814b1c5b1abf4acd396f5",
+        "evidence": "https://rustchain.org/wallet/history?miner_id=officembfurniture-lang&limit=50",
+        "classification": "crypto-asset transfer; not fiat cash",
+        "verification_note": "Matched public wallet-history transaction amount, incoming direction/source, and bounty memo."
+      },
+      {
+        "opportunity_id": "Scottcjn/rustchain-bounties#1102:bottube-agents-search",
+        "amount": 5,
+        "currency": "RTC",
+        "received_at": "2026-09-25T22:50:01Z",
+        "transaction_status": "confirmed",
+        "transaction_hash": "d31205931f81161a6579750417a3f5c6",
+        "evidence": "https://rustchain.org/wallet/history?miner_id=officembfurniture-lang&limit=50",
+        "classification": "crypto-asset transfer; not fiat cash",
+        "verification_note": "Matched public wallet-history transaction amount, incoming direction/source, and bounty memo."
+      }
+    ],
     "cost_savings": []
   },
   "counters": {
@@ -25,16 +48,18 @@
     "produced": 2,
     "delivered": 2,
     "accepted": 2,
-    "paid": 0,
+    "paid": 2,
     "human_gates": 0
   },
   "last_external_outcome": {
     "opportunity_id": "Scottcjn/rustchain-bounties#1102:bottube-agents-search",
-    "status": "ACCEPTED",
+    "status": "PAID",
     "amount": 5,
     "currency": "RTC",
-    "payment_evidence": null,
-    "note": "Acceptance is externally verified; payment remains unverified. See outcomes.ndjson."
+    "payment_evidence": "https://rustchain.org/wallet/history?miner_id=officembfurniture-lang&limit=50",
+    "payment_tx_hash": "d31205931f81161a6579750417a3f5c6",
+    "received_at": "2026-09-25T22:50:01Z",
+    "note": "Public RustChain wallet history confirms this accepted bounty payment. This is RTC, not fiat cash."
   },
   "inherited_from": {
     "engine": "BOUNTY_ENGINE_v1",
