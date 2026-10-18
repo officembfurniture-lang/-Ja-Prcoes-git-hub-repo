@@ -28,6 +28,22 @@ class HealthReportTests(unittest.TestCase):
             self.assertIsNone(report["external_cash_amount"])
             self.assertEqual(path.read_text(encoding="utf-8"), original)
 
+    def test_observation_ratio_is_explicitly_not_a_conversion_rate(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "state.json").write_text(json.dumps({
+                "engine": "VALUE_ENGINE_v2", "cycle": 12, "phase": "IDLE",
+                "counters": {"observed": 11437, "verified": 2, "delivered": 2,
+                             "accepted": 2, "paid": 0},
+                "realized": {"cash": []},
+                "last_cycle_result": {"new_observations": 43},
+            }), encoding="utf-8")
+            report = health_report.build(root)
+            self.assertAlmostEqual(report["observation_to_verified_ratio"], 2 / 11437)
+            self.assertIn("NOT a conversion rate", report["observation_to_verified_ratio_semantics"])
+            self.assertIn("not unique opportunities", report["observation_denominator_semantics"])
+            self.assertTrue(any("not a conversion rate" in note for note in report["notes"]))
+
     def test_zero_observations_has_no_fake_conversion_rate(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
