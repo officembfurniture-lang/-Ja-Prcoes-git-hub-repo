@@ -20,6 +20,10 @@ COOLDOWNS = {
     "READBACK_CLOSED": timedelta(hours=6),
     "READBACK_FAILED": timedelta(hours=2),
 }
+# Stable 404/410 locators are rechecked on the six-day snapshot cadence. This
+# avoids burning every short-cycle GET slot on a missing locator while allowing
+# a changed fingerprint (newly discovered/revised source) to bypass suppression.
+NOT_FOUND_COOLDOWN = timedelta(days=6)
 NO_AUTHORITY_FIELDS = (
     "primary_source_verified", "demand_or_reward_verified",
     "settlement_route_verified", "authorization_to_execute",
@@ -121,12 +125,19 @@ def recent_readback_suppressions(bundle: Path, at: datetime,
             if (receipt.get("source_state") is not None
                     or receipt.get("source_content_sha256") is not None):
                 raise ValueError("failed prior readback pretends to prove source state")
-            if receipt.get("http_error_status") not in (403, 404, 410):
+            http_status = receipt.get("http_error_status")
+            if http_status not in (403, 404, 410):
                 continue
         else:
             raise ValueError("unsupported prior readback status")
         # This is not permission to claim source-state truth at the new clock.
-        if elapsed < COOLDOWNS[status]:
+        # A 404/410 is about the locator, not the task's semantic closure.
+        cooldown = (
+            NOT_FOUND_COOLDOWN
+            if status == "READBACK_FAILED" and http_status in (404, 410)
+            else COOLDOWNS[status]
+        )
+        if elapsed < cooldown:
             prior_allowed[url] = (source.get("fingerprint"), status)
 
     current_identity = {row.get("url"): row.get("fingerprint") for _, row in current}
