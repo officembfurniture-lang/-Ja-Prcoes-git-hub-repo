@@ -141,7 +141,7 @@ class CrossRunFeedbackTests(unittest.TestCase):
             if n == 1:
                 # Same title and updated_at as the queued snapshot, but the
                 # body exceeds the 24k bound and remains explicitly truncated.
-                issue = live_issue(n, updated="2026-10-11T10:00:00Z")
+                issue = live_issue(n)
                 issue["body"] = "Long but otherwise benign source detail. " * 900
                 return issue
             return live_issue(n)
@@ -165,7 +165,9 @@ class CrossRunFeedbackTests(unittest.TestCase):
         def fetch(url, token):
             n = int(url.rsplit("/", 1)[1])
             if n == 1:
-                return live_issue(n, updated="2026-10-11T10:30:00Z")
+                issue = live_issue(n)
+                issue["updated_at"] = "2026-10-11T10:30:00Z"
+                return issue
             return live_issue(n)
 
         self.prior_probe(fetch)
