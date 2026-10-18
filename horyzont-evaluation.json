@@ -20,7 +20,9 @@
       "caller_commit",
       "input_provenance",
       "deterministic_result_hash"
-    ]
+    ],
+    "public_intake_url": "https://github.com/officembfurniture-lang/-Ja-Prcoes-git-hub-repo/issues/46",
+    "intake_status": "OPEN_FOR_INDEPENDENT_EVALUATION"
   },
   "portfolio": [
     {
