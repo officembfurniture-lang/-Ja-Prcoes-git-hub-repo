@@ -202,7 +202,7 @@ def probe(queue: Path, output: Path, summary: Path, *,
     )
     disposition_counts = dict(sorted(Counter(r["status"] for r in receipts).items()))
     report = {
-        "schema": "value-engine.source-readback/v1",
+        "schema": "value-engine.source-readback/v2",
         "stage": "SOURCE_READBACK_NON_AUTHORITATIVE",
         "queue_sha256": raw_hash,
         "readback_at": observed_at,
