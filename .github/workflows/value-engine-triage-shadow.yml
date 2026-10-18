@@ -191,7 +191,7 @@ jobs:
           # A fresh GitHub GET never grants economic or execution authority.
           from hashlib import sha256
           probe = json.loads(Path('/tmp/value-engine-source-readback-summary.json').read_text())
-          assert probe['schema'] == 'value-engine.source-readback/v1'
+          assert probe['schema'] == 'value-engine.source-readback/v2'
           assert probe['stage'] == 'SOURCE_READBACK_NON_AUTHORITATIVE'
           assert probe['authoritative'] is False
           assert probe['queue_sha256'] == sha256(Path('/tmp/value-engine-triage-queue.ndjson').read_bytes()).hexdigest()
@@ -230,7 +230,7 @@ jobs:
               assert entry['realized_value'] == 0
 
           review = json.loads(Path('/tmp/value-engine-readback-review-summary.json').read_text())
-          assert review['schema'] == 'value-engine.readback-review/v1'
+          assert review['schema'] == 'value-engine.readback-review/v2'
           assert review['stage'] == 'READBACK_DECISION_PRE_VERIFY'
           assert review['queue_sha256'] == probe['queue_sha256']
           assert review['readbacks_sha256'] == sha256(Path('/tmp/value-engine-source-readback.ndjson').read_bytes()).hexdigest()
