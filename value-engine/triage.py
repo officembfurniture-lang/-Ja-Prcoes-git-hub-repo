@@ -53,6 +53,13 @@ SELLER_PROPOSAL_MARKERS = (
     "paid pilot inquiry",
 )
 
+# Strategy/research notes may contain prices and payment mechanics as examples,
+# without describing an available, buyer-assigned task.
+NON_OFFER_STRATEGY_MARKERS = (
+    "illustrative transaction, not an actual offer",
+    "no suitable first funded customer assignment has been verified",
+)
+
 WALLET_DEPENDENCY_RE = re.compile(
     r"\b(?:requires?|needs?)\s+(?:an?\s+)?(?:authorized\s+)?funded\s+"
     r"[^.\n]{0,60}\bwallet\b|"
