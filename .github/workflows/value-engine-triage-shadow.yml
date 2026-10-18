@@ -161,7 +161,7 @@ jobs:
             --output /tmp/value-engine-source-readback.ndjson \
             --summary /tmp/value-engine-source-readback-summary.json \
             --limit 3 \
-            --rotation "${{ github.run_number }}" \
+            --rotation "${{ github.event_name == 'pull_request' && '0' || github.run_number }}" \
             "${prior_args[@]}"
       - name: Cross-check live source readbacks and produce review decisions
         working-directory: value-engine
