@@ -24,6 +24,10 @@ COOLDOWNS = {
 # avoids burning every short-cycle GET slot on a missing locator while allowing
 # a changed fingerprint (newly discovered/revised source) to bypass suppression.
 NOT_FOUND_COOLDOWN = timedelta(days=6)
+# A full 24k-bounded capture that still truncates cannot be fully re-triaged.
+# Do not let the same unchanged long body consume one of the three live GET
+# slots every short cycle; still recheck on the ordinary snapshot cadence.
+TRUNCATED_SOURCE_COOLDOWN = timedelta(days=6)
 NO_AUTHORITY_FIELDS = (
     "primary_source_verified", "demand_or_reward_verified",
     "settlement_route_verified", "authorization_to_execute",
@@ -116,12 +120,32 @@ def recent_readback_suppressions(bundle: Path, at: datetime,
             raise ValueError("prior readback receipt has nonzero/invalid value")
         status = receipt.get("status")
         http_status = None
+        source_revision_changed = False
+        source_body_truncated = False
         if status == "READBACK_OPEN":
             if receipt.get("source_state") != "open":
                 raise ValueError("prior open status inconsistent")
+            if (type(receipt.get("source_body_truncated")) is not bool
+                    or type(receipt.get("source_title_changed")) is not bool
+                    or type(receipt.get("source_updated_at_changed")) is not bool):
+                raise ValueError("prior open readback drift/truncation flags invalid")
+            source_body_truncated = receipt["source_body_truncated"]
+            source_revision_changed = (
+                receipt["source_title_changed"]
+                or receipt["source_updated_at_changed"]
+            )
         elif status == "READBACK_CLOSED":
             if receipt.get("source_state") != "closed":
                 raise ValueError("prior closed status inconsistent")
+            if (type(receipt.get("source_body_truncated")) is not bool
+                    or type(receipt.get("source_title_changed")) is not bool
+                    or type(receipt.get("source_updated_at_changed")) is not bool):
+                raise ValueError("prior closed readback drift/truncation flags invalid")
+            source_body_truncated = receipt["source_body_truncated"]
+            source_revision_changed = (
+                receipt["source_title_changed"]
+                or receipt["source_updated_at_changed"]
+            )
         elif status == "READBACK_FAILED":
             if (receipt.get("source_state") is not None
                     or receipt.get("source_content_sha256") is not None):
@@ -131,13 +155,23 @@ def recent_readback_suppressions(bundle: Path, at: datetime,
                 continue
         else:
             raise ValueError("unsupported prior readback status")
+        # A changed source must return to the sensor so its revised snapshot
+        # can enter the canonical observation archive. Never suppress it only
+        # because the URL or queued fingerprint is unchanged.
+        if source_revision_changed:
+            continue
+
         # This is not permission to claim source-state truth at the new clock.
         # A 404/410 is about the locator, not the task's semantic closure.
-        cooldown = (
-            NOT_FOUND_COOLDOWN
-            if status == "READBACK_FAILED" and http_status in (404, 410)
-            else COOLDOWNS[status]
-        )
+        # An unchanged truncated source also receives the six-day snapshot TTL:
+        # the current bounded excerpt cannot resolve its remaining tail, and a
+        # fresh copy of the same excerpt adds no evidence.
+        if status == "READBACK_FAILED" and http_status in (404, 410):
+            cooldown = NOT_FOUND_COOLDOWN
+        elif source_body_truncated:
+            cooldown = TRUNCATED_SOURCE_COOLDOWN
+        else:
+            cooldown = COOLDOWNS[status]
         if elapsed < cooldown:
             prior_allowed[url] = (source.get("fingerprint"), status)
 
