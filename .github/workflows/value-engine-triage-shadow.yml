@@ -209,7 +209,8 @@ jobs:
               assert probe['recent_readbacks_skipped'] == []
           assert 0 <= probe['attempted'] <= 3
           assert 0 <= probe['results'] <= 3
-          assert probe['rotation'] == ${{ github.run_number }}
+          expected_rotation = 0 if "${{ github.event_name }}" == "pull_request" else ${{ github.run_number }}
+          assert probe['rotation'] == expected_rotation
           assert isinstance(probe['selected_queue_ranks'], list)
           assert len(probe['selected_queue_ranks']) == probe['results']
           assert len(set(probe['selected_queue_ranks'])) == probe['results']
