@@ -99,13 +99,24 @@ class SourceProbeTests(unittest.TestCase):
 
     def test_long_body_receipt_is_bounded_and_not_claimed_complete(self):
         self.write(queue_item())
-        source = live_issue(body=("public source information " * 220) + "do not start")
+        source = live_issue(body=("public source information " * 1200) + "do not start")
         self.run_probe(lambda url, token: source)
         row = self.receipts()[0]
-        self.assertEqual(len(row["source_body_excerpt"]), 4000)
+        self.assertEqual(len(row["source_body_excerpt"]), source_probe.MAX_SOURCE_BODY_CHARS)
         self.assertIs(row["source_body_truncated"], True)
         self.assertEqual(row["status"], "READBACK_OPEN")
         self.assertFalse(row["authorization_to_execute"])
+
+    def test_realistic_18k_body_is_captured_in_full_including_tail_risks(self):
+        self.write(queue_item())
+        body = ("Acceptance criteria and delivery evidence. " * 430) + "\nDO NOT START THIS TASK"
+        self.assertGreater(len(body), 18_000)
+        self.assertLessEqual(len(body), source_probe.MAX_SOURCE_BODY_CHARS)
+        self.run_probe(lambda url, token: live_issue(body=body))
+        row = self.receipts()[0]
+        self.assertEqual(row["source_body_excerpt"], body)
+        self.assertIs(row["source_body_truncated"], False)
+        self.assertIn("DO NOT START THIS TASK", row["source_body_excerpt"])
 
     def test_changed_body_or_title_has_new_canonical_hash(self):
         self.write(queue_item())

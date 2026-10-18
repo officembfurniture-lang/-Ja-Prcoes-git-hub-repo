@@ -19,6 +19,10 @@ from typing import Callable
 from cycle import ISSUE_URL_RE, github_issue_readback
 
 MAX_ISSUES = 3
+# Keep enough of a primary issue body to review substantive bounty terms while
+# retaining a hard artifact bound. Bodies beyond this limit remain explicitly
+# truncated and cannot be treated as risk-free.
+MAX_SOURCE_BODY_CHARS = 24_000
 NO_AUTHORITY = {
     "primary_source_verified": False,
     "demand_or_reward_verified": False,
@@ -180,8 +184,8 @@ def probe(queue: Path, output: Path, summary: Path, *,
                 # GET; a source drift must not force a duplicate fetch just
                 # to rediscover start bans or capital requirements.
                 "source_title": issue["title"],
-                "source_body_excerpt": source_fields["body"][:4000],
-                "source_body_truncated": len(source_fields["body"]) > 4000,
+                "source_body_excerpt": source_fields["body"][:MAX_SOURCE_BODY_CHARS],
+                "source_body_truncated": len(source_fields["body"]) > MAX_SOURCE_BODY_CHARS,
                 "source_title_changed": issue["title"] != row.get("title"),
                 "source_updated_at_changed": issue["updated_at"] != row.get("updated_at"),
                 "comment_count": issue.get("comments") if isinstance(issue.get("comments"), int) else None,
@@ -198,7 +202,7 @@ def probe(queue: Path, output: Path, summary: Path, *,
     )
     disposition_counts = dict(sorted(Counter(r["status"] for r in receipts).items()))
     report = {
-        "schema": "value-engine.source-readback/v1",
+        "schema": "value-engine.source-readback/v2",
         "stage": "SOURCE_READBACK_NON_AUTHORITATIVE",
         "queue_sha256": raw_hash,
         "readback_at": observed_at,
