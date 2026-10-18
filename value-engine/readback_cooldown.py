@@ -67,7 +67,7 @@ def recent_readback_suppressions(bundle: Path, at: datetime,
     prior_receipts = load_ndjson(receipts_path)
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
     if (not isinstance(summary, dict)
-            or summary.get("schema") != "value-engine.source-readback/v1"
+            or summary.get("schema") != "value-engine.source-readback/v2"
             or summary.get("stage") != "SOURCE_READBACK_NON_AUTHORITATIVE"
             or summary.get("authoritative") is not False
             or summary.get("queue_sha256") != hashlib.sha256(queue_bytes).hexdigest()
