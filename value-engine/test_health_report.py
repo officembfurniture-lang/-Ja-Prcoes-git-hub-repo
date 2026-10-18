@@ -44,6 +44,31 @@ class HealthReportTests(unittest.TestCase):
             self.assertIn("same underlying opportunity may appear", report["observation_denominator_semantics"])
             self.assertTrue(any("not a conversion rate" in note for note in report["notes"]))
 
+    def test_zero_direct_readback_captures_are_retained_as_diagnostic(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "state.json").write_text(json.dumps({
+                "engine": "VALUE_ENGINE_v2", "cycle": 273, "phase": "IDLE",
+                "counters": {"observed": 11437, "verified": 2, "delivered": 2,
+                             "accepted": 2, "paid": 0},
+                "realized": {"cash": []},
+                "last_cycle_result": {
+                    "direct_readback_attempts": 3,
+                    "direct_readback_captures": 0,
+                    "direct_readback_closed": 0,
+                    "source_errors": [
+                        {"source": "github_direct_readback", "http_status": 404},
+                        {"source": "github_direct_readback", "http_status": 404},
+                        {"source": "github_direct_readback", "http_status": 404},
+                    ],
+                },
+            }), encoding="utf-8")
+            report = health_report.build(root)
+            self.assertIn("zero_direct_readback_captures", report["diagnostic_alerts"])
+            self.assertEqual(report["last_sensor_direct_readback_attempts"], 3)
+            self.assertEqual(report["last_sensor_direct_readback_captures"], 0)
+            self.assertEqual(report["last_sensor_direct_readback_http_404s"], 3)
+
     def test_zero_observations_has_no_fake_conversion_rate(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
