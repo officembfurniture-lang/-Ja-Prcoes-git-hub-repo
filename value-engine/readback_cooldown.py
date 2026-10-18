@@ -115,6 +115,7 @@ def recent_readback_suppressions(bundle: Path, at: datetime,
         if type(receipt.get("realized_value")) is not int or receipt["realized_value"] != 0:
             raise ValueError("prior readback receipt has nonzero/invalid value")
         status = receipt.get("status")
+        http_status = None
         if status == "READBACK_OPEN":
             if receipt.get("source_state") != "open":
                 raise ValueError("prior open status inconsistent")
