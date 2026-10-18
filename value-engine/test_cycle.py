@@ -267,6 +267,24 @@ class SnapshotRefreshTests(unittest.TestCase):
         self.assertEqual(latest["source_state"], "closed")
         self.assertEqual(triage.classify(latest, at)["disposition"], "HOLD_SOURCE_CLOSED")
 
+    def test_stale_closed_candidate_is_rechecked_and_reopened(self):
+        import triage
+
+        closed = dict(source_item(), state="closed",
+                      updated_at="2026-10-01T11:00:00Z")
+        self.put_previous(cycle.iso(START), item=closed)
+        at = START + timedelta(days=8)
+        reopened = dict(source_item(), state="open", updated_at=cycle.iso(at))
+        state, rows, _ = self.execute(at, response=[], direct_response=reopened)
+
+        latest = triage.newest_by_url(rows)[0]
+        self.assertEqual(state["last_cycle_result"]["direct_readback_attempts"], 1)
+        self.assertEqual(state["last_cycle_result"]["direct_readback_captures"], 1)
+        self.assertEqual(latest["source_state"], "open")
+        self.assertNotEqual(triage.classify(latest, at)["disposition"],
+                            "HOLD_SOURCE_CLOSED")
+        self.assertFalse(latest["primary_source_verified"])
+
     def test_identity_mismatch_does_not_create_fake_readback(self):
         self.put_previous(cycle.iso(START))
         mismatched = dict(source_item(), id=777)
@@ -351,6 +369,33 @@ class SnapshotRefreshTests(unittest.TestCase):
         self.assertEqual(problem["http_status"], 404)
         self.assertEqual(problem["error"], "HTTPError")
         self.assertEqual(ledger[0]["errors"][0]["http_status"], 404)
+
+    def test_http_404_uses_snapshot_ttl_backoff_then_retries(self):
+        import urllib.error
+
+        self.put_previous(cycle.iso(START))
+        at = START + timedelta(days=8)
+
+        def unavailable(url):
+            raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)
+
+        failed, rows, _ = self.execute(at, response=[], direct_response=unavailable)
+        self.assertEqual(failed["last_cycle_result"]["direct_readback_attempts"], 1)
+        self.assertEqual(failed["last_cycle_result"]["direct_readback_captures"], 0)
+        self.assertEqual(len(rows), 1)
+
+        cooled, same_rows, _ = self.execute(
+            at + timedelta(days=1), response=[], direct_response=source_item()
+        )
+        self.assertEqual(cooled["last_cycle_result"]["direct_readback_attempts"], 0)
+        self.assertEqual(len(same_rows), 1)
+
+        recovered, refreshed, _ = self.execute(
+            at + timedelta(days=7), response=[], direct_response=source_item()
+        )
+        self.assertEqual(recovered["last_cycle_result"]["direct_readback_attempts"], 1)
+        self.assertEqual(recovered["last_cycle_result"]["direct_readback_captures"], 1)
+        self.assertEqual(len(refreshed), 2)
 
     def test_second_cycle_does_not_repeat_a_recent_refresh(self):
         self.put_previous(cycle.iso(START))
