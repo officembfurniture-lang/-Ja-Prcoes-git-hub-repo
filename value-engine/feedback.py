@@ -47,8 +47,9 @@ def recommend(report: dict) -> dict:
                 next_action = (
                     "Do not convert HTTP 404 into a closed-task decision. Back off an unchanged "
                     "404/410 locator for one six-day snapshot TTL, keep rotating through other "
-                    "candidates, and re-read stale closed snapshots. A newly discovered source "
-                    "revision bypasses the old locator cooldown."
+                    "candidates, and re-read stale closed snapshots. Do not retry the same failed "
+                    "URL merely to fill the quota. A newly discovered source revision bypasses "
+                    "the old locator cooldown."
                 )
             else:
                 next_action = (
@@ -68,8 +69,8 @@ def recommend(report: dict) -> dict:
                 "next_action": next_action,
                 "evidence_boundary": (
                     "HTTP 404 establishes that this read path did not resolve the target; it does "
-                    "not by itself prove the task is closed, global source deletion, a global source "
-                    "outage, or any payment status."
+                    "not by itself prove deletion, task closure, a global source outage, or any "
+                    "payment status."
                 ),
             })
 
