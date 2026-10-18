@@ -41,7 +41,7 @@ class HealthReportTests(unittest.TestCase):
             report = health_report.build(root)
             self.assertAlmostEqual(report["observation_to_verified_ratio"], 2 / 11437)
             self.assertIn("NOT a conversion rate", report["observation_to_verified_ratio_semantics"])
-            self.assertIn("not unique opportunities", report["observation_denominator_semantics"])
+            self.assertIn("same underlying opportunity may appear", report["observation_denominator_semantics"])
             self.assertTrue(any("not a conversion rate" in note for note in report["notes"]))
 
     def test_zero_observations_has_no_fake_conversion_rate(self):
