@@ -9,6 +9,8 @@ account, payment, direct contact, or permission expansion from this repository.
 
 Activation id: `DA-20260801-P0004-I2`
 
+**External evidence intake:** [submit one independently operated P-0004 evaluation in Issue #46](https://github.com/officembfurniture-lang/-Ja-Prcoes-git-hub-repo/issues/46). The issue defines the minimum reproducible run and evidence required; owner-controlled runs do not qualify.
+
 ```yaml
 name: Independent HORYZONT evaluation
 on: workflow_dispatch
