@@ -135,6 +135,51 @@ class CrossRunFeedbackTests(unittest.TestCase):
         self.assertEqual(report["selected_queue_ranks"], [1, 4, 5])
         self.assertEqual(len(report["recent_readbacks_skipped"]), 2)
 
+    def test_unchanged_truncated_source_uses_snapshot_ttl_not_short_cooldown(self):
+        def fetch(url, token):
+            n = int(url.rsplit("/", 1)[1])
+            if n == 1:
+                # Same title and updated_at as the queued snapshot, but the
+                # body exceeds the 24k bound and remains explicitly truncated.
+                issue = live_issue(n)
+                issue["body"] = "Long but otherwise benign source detail. " * 900
+                return issue
+            return live_issue(n)
+
+        self.prior_probe(fetch)
+        prior_receipts = [json.loads(line) for line in
+                          self.old_readbacks.read_text().splitlines()]
+        self.assertIs(prior_receipts[0]["source_body_truncated"], True)
+        result, calls = self.fresh_probe(at=AT + timedelta(hours=3))
+        self.assertEqual(calls, [2, 3, 4])
+        self.assertEqual(result["recent_readbacks_skipped"], [
+            {"queue_rank": 1, "prior_status": "READBACK_OPEN"},
+        ])
+        self.assertEqual(result["prior_feedback_status"], "SUPPRESSION_APPLIED")
+
+        after_ttl, after_calls = self.fresh_probe(at=AT + timedelta(days=7))
+        self.assertEqual(after_calls, [1, 2, 3])
+        self.assertEqual(after_ttl["recent_readbacks_skipped"], [])
+
+    def test_changed_live_source_revision_bypasses_short_open_cooldown(self):
+        def fetch(url, token):
+            n = int(url.rsplit("/", 1)[1])
+            if n == 1:
+                issue = live_issue(n)
+                issue["updated_at"] = "2026-10-11T10:30:00Z"
+                return issue
+            return live_issue(n)
+
+        self.prior_probe(fetch)
+        result, calls = self.fresh_probe(at=AT + timedelta(hours=1))
+        self.assertEqual(calls, [1, 4, 5])
+        self.assertEqual(result["selected_queue_ranks"], [1, 4, 5])
+        self.assertEqual(result["recent_readbacks_skipped"], [
+            {"queue_rank": 2, "prior_status": "READBACK_OPEN"},
+            {"queue_rank": 3, "prior_status": "READBACK_OPEN"},
+        ])
+        self.assertEqual(result["prior_feedback_status"], "SUPPRESSION_APPLIED")
+
     def test_404_cooldown_does_not_freeze_a_new_source_revision(self):
         def fetch(url, token):
             n = int(url.rsplit("/", 1)[1])
