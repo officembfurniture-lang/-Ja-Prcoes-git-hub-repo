@@ -147,8 +147,9 @@ class ReadbackReviewTests(unittest.TestCase):
         summary, rows = self.review()
         self.assertEqual(summary["review_decisions"], {"HOLD_START_PROHIBITED": 3})
         self.assertTrue(all(not row["source_body_truncated"] for row in rows))
+        captured = [json.loads(line) for line in self.receipts.read_text().splitlines()]
         self.assertTrue(all("DO NOT START THIS TASK" in
-                            row["source_body_excerpt"] for row in rows))
+                            row["source_body_excerpt"] for row in captured))
         self.assertFalse(summary["authorization_to_execute"])
 
     def test_source_body_or_drift_flag_tampering_is_rejected(self):
