@@ -299,9 +299,13 @@ The readback receipt now retains the current source title, at most the first
 24,000 characters of its public body, and an explicit truncation flag. This
 covers the current 11,961- and 18,371-character candidate bodies while keeping
 a hard per-source artifact bound. Longer bodies remain explicitly truncated
-and cannot be treated as risk-free. The existing readback decision stage checks
-the current source fields, verifies the hash against those fields **when the
-entire body fits in the excerpt**,
+and cannot be treated as risk-free. The source-readback receipt summary is now
+schema v2: a prior v1 artifact is rejected as a cooldown hint and triggers fresh
+bounded GETs, so an earlier 4,000-character truncated receipt cannot suppress
+the first read under the expanded limit. After a v2 receipt is written, normal
+cross-run cooldown resumes. The existing readback decision stage checks the
+current source fields, verifies the hash against those fields **when the entire
+body fits in the excerpt**,
 and applies the same conservative hold rules used in `triage.py`. Changed
 issue text that states a start prohibition, capital requirement, dependency,
 unconfirmed reward, human approval gate or non-primary offer is held as such
