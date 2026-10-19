@@ -2,7 +2,7 @@
   "engine": "VALUE_ENGINE_v2",
   "schema_version": 2,
   "mode": "shadow_until_route_verified",
-  "cycle": 278,
+  "cycle": 279,
   "phase": "IDLE",
   "lease": {
     "cycle_id": null,
@@ -42,7 +42,7 @@
     "cost_savings": []
   },
   "counters": {
-    "observed": 11663,
+    "observed": 11706,
     "verified": 2,
     "selected": 2,
     "produced": 2,
@@ -67,22 +67,15 @@
     "ledger_path": "bounty-engine/ledger.ndjson"
   },
   "last_cycle_result": {
-    "cycle_id": "cycle-278-39175299024",
-    "at": "2026-10-18T23:09:29Z",
+    "cycle_id": "cycle-279-39184403944",
+    "at": "2026-10-19T01:14:11Z",
     "new_observations": 42,
-    "refreshed_snapshots": 2,
-    "observations_sha256": "352570dfe6e3232ea5841eb31e23884dfbe72e0a41ff33d32ef142c4dccd3cbc",
+    "refreshed_snapshots": 1,
+    "observations_sha256": "73eb448057c24e9777a9da0021af82439a285c05a65d4e4f9c631fab0f5c1aaa",
     "direct_readback_attempts": 3,
-    "direct_readback_captures": 2,
-    "direct_readback_closed": 0,
-    "source_errors": [
-      {
-        "source": "github_direct_readback",
-        "url": "https://github.com/mandaputtra/ping-pong-pay/issues/10",
-        "error": "ValueError",
-        "http_status": null
-      }
-    ],
+    "direct_readback_captures": 3,
+    "direct_readback_closed": 1,
+    "source_errors": [],
     "selected": 0,
     "delivered": 0,
     "paid": 0,
