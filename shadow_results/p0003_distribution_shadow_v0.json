@@ -1,0 +1,50 @@
+{
+  "schema": "omega-shadow/result-v0",
+  "shadow_id": "P0003-DISTRIBUTION-SHADOW-001",
+  "source": {
+    "probe_id": "P-0003",
+    "source_file": "value-circuit.json",
+    "source_blob_sha": "8273bd25fe9eb97ccc1ed77af301c3baf04dd94a",
+    "verified_distribution_commit": "9401f04303d141e38052b54d370797d7ae4a2eae",
+    "observed_state": {
+      "distribution": "verified",
+      "external_use": "none",
+      "outcome": "none",
+      "capture": "none",
+      "return": "none"
+    }
+  },
+  "first_shadow": {
+    "fixture_commit": "8572ec052720f032962ed1394dad5d871e8530a8",
+    "github_actions_run_id": 32019362701,
+    "ci_conclusion": "failure",
+    "driver_actual_verdict": "PROMOTE",
+    "required_verdict": "HOLD",
+    "failure": "Unknown human burden was implicitly converted to zero burden."
+  },
+  "repair": {
+    "commit": "ea4503f3b542aad84aaa16a7dd6fcbe25b7849c2",
+    "rule": "If verified delta/action exists but human burden is unmeasured, HOLD. Unknown cost must not be treated as zero cost.",
+    "representation_change": "burden_delta is null when burden is unknown rather than fabricated as 0.0"
+  },
+  "post_repair": {
+    "github_actions_run_id": 32019429364,
+    "ci_status": "completed",
+    "ci_conclusion": "success",
+    "p0003_shadow_verdict": "HOLD",
+    "next_test": "obtain a real before/after human-burden measurement or use a cycle whose burden is already measured; do not promote P-0003 on distribution evidence alone"
+  },
+  "epistemic_boundary": {
+    "established": [
+      "The first historical shadow case exposed a real implementation defect in the controller.",
+      "The defect was repaired and the same test suite passed in GitHub Actions.",
+      "P-0003 distribution is verified while external_use/outcome/capture/return remain unverified in the source state."
+    ],
+    "not_established": [
+      "that omega improves live automated cycles",
+      "that P-0003 produced external use or outcome",
+      "that the controller reduces human burden in practice",
+      "that any ontological or consciousness claim follows from this result"
+    ]
+  }
+}
