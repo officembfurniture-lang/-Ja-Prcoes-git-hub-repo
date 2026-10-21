@@ -6,6 +6,8 @@ on:
     paths:
       - 'value-engine/omega_shadow_gate.py'
       - 'value-engine/test_omega_shadow_gate.py'
+      - 'value-engine/paired_outcome_contract.py'
+      - 'value-engine/test_paired_outcome_contract.py'
       - '.github/workflows/omega-paired-shadow-trial.yml'
   workflow_run:
     workflows:
@@ -68,6 +70,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m unittest discover -s value-engine -p 'test_omega_shadow_gate.py' -v
+          python3 -m unittest discover -s value-engine -p 'test_paired_outcome_contract.py' -v
           (
             cd omega-pinned
             python3 -m unittest -v test_omega_shadow_driver_v0.py
