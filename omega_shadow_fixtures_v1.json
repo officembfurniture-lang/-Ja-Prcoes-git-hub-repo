@@ -1,0 +1,518 @@
+{
+  "schema_version": 1,
+  "scope": "synthetic regression fixtures; not held-out evidence or human measurements",
+  "cases": [
+    {
+      "name": "no_delta",
+      "record": {
+        "previous_state": {
+          "decision": "hold"
+        },
+        "candidate_state": {
+          "decision": "proceed"
+        },
+        "evidence": [],
+        "decision_effect": {},
+        "predictions": [],
+        "action": {},
+        "debts": {},
+        "human_burden": {
+          "measured": false
+        }
+      },
+      "expected_verdict": "NO_DELTA"
+    },
+    {
+      "name": "verified_material_delta",
+      "record": {
+        "previous_state": {
+          "decision": "hold"
+        },
+        "candidate_state": {
+          "decision": "proceed"
+        },
+        "evidence": [
+          {
+            "id": "e1",
+            "status": "VERIFIED",
+            "provenance": {
+              "kind": "source_document",
+              "locator": "fixture://omega/synthetic-readback",
+              "readback_verified": true
+            },
+            "already_known": false
+          }
+        ],
+        "decision_effect": {
+          "verified": true,
+          "kind": "decision_changed",
+          "provenance": {
+            "kind": "paired_comparison",
+            "locator": "fixture://omega/synthetic-readback",
+            "readback_verified": true
+          },
+          "supporting_evidence_ids": [
+            "e1"
+          ]
+        },
+        "predictions": [],
+        "action": {},
+        "debts": {},
+        "human_burden": {
+          "measured": true,
+          "before": 2,
+          "after": 1
+        }
+      },
+      "expected_verdict": "PROMOTE"
+    },
+    {
+      "name": "artifact_verified_but_no_decision_effect",
+      "record": {
+        "previous_state": {
+          "decision": "hold"
+        },
+        "candidate_state": {
+          "decision": "proceed"
+        },
+        "evidence": [
+          {
+            "id": "e1",
+            "status": "VERIFIED",
+            "provenance": {
+              "kind": "source_document",
+              "locator": "fixture://omega/synthetic-readback",
+              "readback_verified": true
+            },
+            "already_known": false
+          }
+        ],
+        "decision_effect": {},
+        "predictions": [],
+        "action": {
+          "executed": true,
+          "readback_verified": true,
+          "provenance": {
+            "kind": "artifact_readback",
+            "locator": "fixture://omega/synthetic-readback",
+            "readback_verified": true
+          },
+          "supporting_evidence_ids": [
+            "e1"
+          ]
+        },
+        "debts": {},
+        "human_burden": {
+          "measured": true,
+          "before": 2,
+          "after": 1
+        }
+      },
+      "expected_verdict": "HOLD"
+    },
+    {
+      "name": "burden_regression",
+      "record": {
+        "previous_state": {
+          "decision": "hold"
+        },
+        "candidate_state": {
+          "decision": "proceed"
+        },
+        "evidence": [],
+        "decision_effect": {},
+        "predictions": [],
+        "action": {},
+        "debts": {},
+        "human_burden": {
+          "measured": true,
+          "before": 1,
+          "after": 2
+        }
+      },
+      "expected_verdict": "DRIVER_REGRESSION"
+    },
+    {
+      "name": "unsupported_progress_claim",
+      "record": {
+        "previous_state": {
+          "decision": "hold"
+        },
+        "candidate_state": {
+          "decision": "proceed"
+        },
+        "evidence": [
+          {
+            "id": "e1",
+            "status": "VERIFIED",
+            "provenance": {
+              "kind": "source_document",
+              "locator": "fixture://omega/synthetic-readback",
+              "readback_verified": true
+            },
+            "already_known": false
+          }
+        ],
+        "decision_effect": {
+          "verified": true,
+          "kind": "decision_changed",
+          "provenance": {
+            "kind": "paired_comparison",
+            "locator": "fixture://omega/synthetic-readback",
+            "readback_verified": true
+          },
+          "supporting_evidence_ids": [
+            "e1"
+          ]
+        },
+        "predictions": [
+          {
+            "status": "PROGRESS",
+            "supporting_evidence_ids": [
+              "missing"
+            ]
+          }
+        ],
+        "action": {},
+        "debts": {},
+        "human_burden": {
+          "measured": true,
+          "before": 2,
+          "after": 1
+        }
+      },
+      "expected_verdict": "DRIVER_REGRESSION"
+    },
+    {
+      "name": "distribution_verified_without_use_or_effect",
+      "record": {
+        "previous_state": {
+          "decision": "hold"
+        },
+        "candidate_state": {
+          "distribution": "verified",
+          "use": "unverified",
+          "outcome": "unverified",
+          "capture": "unverified",
+          "return": "unverified"
+        },
+        "evidence": [
+          {
+            "id": "e1",
+            "status": "VERIFIED",
+            "provenance": {
+              "kind": "source_document",
+              "locator": "fixture://omega/synthetic-readback",
+              "readback_verified": true
+            },
+            "already_known": false
+          }
+        ],
+        "decision_effect": {},
+        "predictions": [],
+        "action": {
+          "executed": true,
+          "readback_verified": true,
+          "provenance": {
+            "kind": "artifact_readback",
+            "locator": "fixture://omega/synthetic-readback",
+            "readback_verified": true
+          },
+          "supporting_evidence_ids": [
+            "e1"
+          ]
+        },
+        "debts": {},
+        "human_burden": {
+          "measured": false
+        }
+      },
+      "expected_verdict": "HOLD"
+    },
+    {
+      "name": "material_effect_with_unknown_burden",
+      "record": {
+        "previous_state": {
+          "decision": "hold"
+        },
+        "candidate_state": {
+          "decision": "proceed"
+        },
+        "evidence": [
+          {
+            "id": "e1",
+            "status": "VERIFIED",
+            "provenance": {
+              "kind": "source_document",
+              "locator": "fixture://omega/synthetic-readback",
+              "readback_verified": true
+            },
+            "already_known": false
+          }
+        ],
+        "decision_effect": {
+          "verified": true,
+          "kind": "decision_changed",
+          "provenance": {
+            "kind": "paired_comparison",
+            "locator": "fixture://omega/synthetic-readback",
+            "readback_verified": true
+          },
+          "supporting_evidence_ids": [
+            "e1"
+          ]
+        },
+        "predictions": [],
+        "action": {},
+        "debts": {},
+        "human_burden": {
+          "measured": false
+        }
+      },
+      "expected_verdict": "HOLD"
+    },
+    {
+      "name": "debt_over_limit",
+      "record": {
+        "previous_state": {
+          "decision": "hold"
+        },
+        "candidate_state": {
+          "decision": "proceed"
+        },
+        "evidence": [
+          {
+            "id": "e1",
+            "status": "VERIFIED",
+            "provenance": {
+              "kind": "source_document",
+              "locator": "fixture://omega/synthetic-readback",
+              "readback_verified": true
+            },
+            "already_known": false
+          }
+        ],
+        "decision_effect": {
+          "verified": true,
+          "kind": "decision_changed",
+          "provenance": {
+            "kind": "paired_comparison",
+            "locator": "fixture://omega/synthetic-readback",
+            "readback_verified": true
+          },
+          "supporting_evidence_ids": [
+            "e1"
+          ]
+        },
+        "predictions": [],
+        "action": {},
+        "debts": {
+          "claim_debt": 4
+        },
+        "human_burden": {
+          "measured": true,
+          "before": 2,
+          "after": 1
+        }
+      },
+      "expected_verdict": "HOLD"
+    },
+    {
+      "name": "action_with_unverified_support",
+      "record": {
+        "previous_state": {
+          "decision": "hold"
+        },
+        "candidate_state": {
+          "decision": "proceed"
+        },
+        "evidence": [
+          {
+            "id": "e1",
+            "status": "VERIFIED",
+            "provenance": {
+              "kind": "source_document",
+              "locator": "fixture://omega/synthetic-readback",
+              "readback_verified": true
+            },
+            "already_known": false
+          },
+          {
+            "id": "pending",
+            "status": "OBSERVED"
+          }
+        ],
+        "decision_effect": {
+          "verified": true,
+          "kind": "decision_changed",
+          "provenance": {
+            "kind": "paired_comparison",
+            "locator": "fixture://omega/synthetic-readback",
+            "readback_verified": true
+          },
+          "supporting_evidence_ids": [
+            "e1"
+          ]
+        },
+        "predictions": [],
+        "action": {
+          "executed": true,
+          "readback_verified": true,
+          "provenance": {
+            "kind": "artifact_readback",
+            "locator": "fixture://omega/synthetic-readback",
+            "readback_verified": true
+          },
+          "supporting_evidence_ids": [
+            "pending"
+          ]
+        },
+        "debts": {},
+        "human_burden": {
+          "measured": true,
+          "before": 2,
+          "after": 1
+        }
+      },
+      "expected_verdict": "HOLD"
+    },
+    {
+      "name": "vague_provenance_string",
+      "record": {
+        "previous_state": {
+          "decision": "hold"
+        },
+        "candidate_state": {
+          "decision": "proceed"
+        },
+        "evidence": [
+          {
+            "id": "e1",
+            "status": "VERIFIED",
+            "provenance": "tool:readback",
+            "already_known": false
+          }
+        ],
+        "decision_effect": {
+          "verified": true,
+          "kind": "decision_changed",
+          "provenance": {
+            "kind": "paired_comparison",
+            "locator": "fixture://omega/synthetic-readback",
+            "readback_verified": true
+          },
+          "supporting_evidence_ids": [
+            "e1"
+          ]
+        },
+        "predictions": [],
+        "action": {},
+        "debts": {},
+        "human_burden": {
+          "measured": true,
+          "before": 2,
+          "after": 1
+        }
+      },
+      "expected_verdict": "INPUT_INVALID"
+    },
+    {
+      "name": "duplicate_evidence_identifier",
+      "record": {
+        "previous_state": {
+          "decision": "hold"
+        },
+        "candidate_state": {
+          "decision": "proceed"
+        },
+        "evidence": [
+          {
+            "id": "e1",
+            "status": "VERIFIED",
+            "provenance": {
+              "kind": "source_document",
+              "locator": "fixture://omega/synthetic-readback",
+              "readback_verified": true
+            },
+            "already_known": false
+          },
+          {
+            "id": "e1",
+            "status": "VERIFIED",
+            "provenance": {
+              "kind": "source_document",
+              "locator": "fixture://omega/synthetic-readback",
+              "readback_verified": true
+            },
+            "already_known": false
+          }
+        ],
+        "decision_effect": {
+          "verified": true,
+          "kind": "decision_changed",
+          "provenance": {
+            "kind": "paired_comparison",
+            "locator": "fixture://omega/synthetic-readback",
+            "readback_verified": true
+          },
+          "supporting_evidence_ids": [
+            "e1"
+          ]
+        },
+        "predictions": [],
+        "action": {},
+        "debts": {},
+        "human_burden": {
+          "measured": true,
+          "before": 2,
+          "after": 1
+        }
+      },
+      "expected_verdict": "INPUT_INVALID"
+    },
+    {
+      "name": "burden_regression_despite_material_effect",
+      "record": {
+        "previous_state": {
+          "decision": "hold"
+        },
+        "candidate_state": {
+          "decision": "proceed"
+        },
+        "evidence": [
+          {
+            "id": "e1",
+            "status": "VERIFIED",
+            "provenance": {
+              "kind": "source_document",
+              "locator": "fixture://omega/synthetic-readback",
+              "readback_verified": true
+            },
+            "already_known": false
+          }
+        ],
+        "decision_effect": {
+          "verified": true,
+          "kind": "decision_changed",
+          "provenance": {
+            "kind": "paired_comparison",
+            "locator": "fixture://omega/synthetic-readback",
+            "readback_verified": true
+          },
+          "supporting_evidence_ids": [
+            "e1"
+          ]
+        },
+        "predictions": [],
+        "action": {},
+        "debts": {},
+        "human_burden": {
+          "measured": true,
+          "before": 1,
+          "after": 2
+        }
+      },
+      "expected_verdict": "DRIVER_REGRESSION"
+    }
+  ]
+}
