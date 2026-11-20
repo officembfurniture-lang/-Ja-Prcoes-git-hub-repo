@@ -23,6 +23,16 @@ def _nonempty_string(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
 
+def _valid_timestamp(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return parsed.tzinfo is not None and parsed.utcoffset() is not None
+    except (TypeError, ValueError):
+        return False
+
+
 def _valid_outcome_claim(row: Any) -> tuple[bool, str]:
     if not isinstance(row, dict):
         return False, "CLAIM_NOT_OBJECT"
@@ -35,15 +45,14 @@ def _valid_outcome_claim(row: Any) -> tuple[bool, str]:
         return False, "NOT_CLAIMED_PAID"
     if (not isinstance(row["amount"], (int, float))
             or isinstance(row["amount"], bool)
-            or not math.isfinite(row["amount"]) or row["amount"] <= 0):
+            or (isinstance(row["amount"], float) and not math.isfinite(row["amount"]))
+            or row["amount"] <= 0):
         return False, "INVALID_AMOUNT"
     if not all(_nonempty_string(row[k]) for k in (
             "receipt_id", "source_family", "opportunity_class", "currency",
             "received_at")):
         return False, "INVALID_IDENTITY_FIELD"
-    try:
-        datetime.fromisoformat(row["received_at"].replace("Z", "+00:00"))
-    except ValueError:
+    if not _valid_timestamp(row["received_at"]):
         return False, "INVALID_RECEIVED_AT"
     claim = row["verification"]
     if not isinstance(claim, dict):
@@ -54,6 +63,8 @@ def _valid_outcome_claim(row: Any) -> tuple[bool, str]:
             "verifier", "method", "evidence_uri", "verified_at",
             "verification_record_uri")):
         return False, "VERIFICATION_CLAIM_INCOMPLETE"
+    if not _valid_timestamp(claim["verified_at"]):
+        return False, "INVALID_VERIFIED_AT"
     for key in ("evidence_sha256", "verification_record_sha256"):
         digest = claim.get(key)
         if not isinstance(digest, str) or not HEX_256.fullmatch(digest):
@@ -103,6 +114,10 @@ def build_shadow_feedback(outcome_claims: list[dict[str, Any]],
     except (TypeError, ValueError) as exc:
         raise ValueError("inputs must be finite JSON-compatible data") from exc
 
+    claim_id_counts = Counter(
+        row.get("receipt_id") for row in outcome_claims
+        if isinstance(row, dict) and isinstance(row.get("receipt_id"), str)
+    )
     eligible_claims: list[dict[str, Any]] = []
     rejected: list[dict[str, str]] = []
     seen: set[str] = set()
@@ -112,7 +127,7 @@ def build_shadow_feedback(outcome_claims: list[dict[str, Any]],
         if not ok:
             rejected.append({"receipt_id": str(claim_id), "reason": reason})
             continue
-        if claim_id in seen:
+        if claim_id_counts[claim_id] > 1:
             rejected.append({"receipt_id": claim_id, "reason": "DUPLICATE_CLAIM_ID"})
             continue
         seen.add(claim_id)
