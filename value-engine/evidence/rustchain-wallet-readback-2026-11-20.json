@@ -13,7 +13,8 @@
       "A confirmed RTC transfer is a non-cash crypto-asset receipt, not fiat income."
     ]
   },
-  "response_sha256": "2aafc368cb80d581d71074a2d902f4ccf29c13e83fd3f8c5197a034985322ee7",
+  "canonical_response_sha256": "2aafc368cb80d581d71074a2d902f4ccf29c13e83fd3f8c5197a034985322ee7",
+  "hash_method": "SHA-256 of the compact canonical JSON response encoded as UTF-8, with sorted keys and no insignificant whitespace",
   "response": {
     "miner_id": "officembfurniture-lang",
     "ok": true,
