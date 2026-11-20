@@ -1,7 +1,9 @@
-"""Shadow-only, provenance-gated outcome feedback for source selection.
+"""Shadow-only ranking experiment using explicitly untrusted outcome claims.
 
-This module validates receipt structure, not external evidence. It never mutates
-policy.json or grants authority; a trusted upstream verifier remains mandatory.
+This module does NOT authenticate verifier identities, verify external evidence,
+or mutate policy.json. A caller-supplied attestation is only a claim. This module
+can test the shape and possible decision impact of such claims; it cannot turn
+them into trusted receipts or authorize a production policy update.
 """
 from __future__ import annotations
 
@@ -13,127 +15,118 @@ from collections import Counter
 from datetime import datetime
 from typing import Any
 
-SCHEMA = "value-engine.policy-feedback/v1"
+SCHEMA = "value-engine.policy-feedback/v2"
 HEX_256 = re.compile(r"^[0-9a-f]{64}$")
 
 
-def _valid_timestamp(value: str) -> bool:
-    try:
-        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        return parsed.tzinfo is not None and parsed.utcoffset() is not None
-    except (TypeError, ValueError):
-        return False
+def _nonempty_string(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip())
 
 
-def _valid_receipt(row: Any) -> tuple[bool, str]:
+def _valid_outcome_claim(row: Any) -> tuple[bool, str]:
     if not isinstance(row, dict):
-        return False, "RECEIPT_NOT_OBJECT"
+        return False, "CLAIM_NOT_OBJECT"
     required = ("receipt_id", "settlement_status", "source_family",
                 "opportunity_class", "amount", "currency", "received_at",
                 "verification")
     if any(key not in row for key in required):
         return False, "REQUIRED_FIELD_MISSING"
     if row["settlement_status"] != "PAID":
-        return False, "NOT_PAID"
-    amount = row["amount"]
-    if (not isinstance(amount, (int, float)) or isinstance(amount, bool)
-            or not math.isfinite(amount) or amount <= 0):
+        return False, "NOT_CLAIMED_PAID"
+    if (not isinstance(row["amount"], (int, float))
+            or isinstance(row["amount"], bool)
+            or not math.isfinite(row["amount"]) or row["amount"] <= 0):
         return False, "INVALID_AMOUNT"
-    if not all(isinstance(row[k], str) and row[k].strip()
-               for k in ("receipt_id", "source_family", "opportunity_class", "currency")):
+    if not all(_nonempty_string(row[k]) for k in (
+            "receipt_id", "source_family", "opportunity_class", "currency",
+            "received_at")):
         return False, "INVALID_IDENTITY_FIELD"
-    if not isinstance(row["received_at"], str) or not _valid_timestamp(row["received_at"]):
+    try:
+        datetime.fromisoformat(row["received_at"].replace("Z", "+00:00"))
+    except ValueError:
         return False, "INVALID_RECEIVED_AT"
-    attestation = row["verification"]
-    if not isinstance(attestation, dict):
-        return False, "VERIFICATION_ATTESTATION_MISSING"
-    if attestation.get("status") != "INDEPENDENTLY_VERIFIED":
-        return False, "NOT_INDEPENDENTLY_VERIFIED"
-    if not all(isinstance(attestation.get(k), str) and attestation[k].strip()
-               for k in ("verifier", "method", "evidence_uri",
-                         "verified_at", "verification_record_uri")):
-        return False, "VERIFICATION_PROVENANCE_INCOMPLETE"
-    if not _valid_timestamp(attestation["verified_at"]):
-        return False, "INVALID_VERIFIED_AT"
-    digest = attestation.get("evidence_sha256")
-    record_digest = attestation.get("verification_record_sha256")
-    if not isinstance(digest, str) or not HEX_256.fullmatch(digest):
-        return False, "EVIDENCE_HASH_INVALID"
-    if not isinstance(record_digest, str) or not HEX_256.fullmatch(record_digest):
-        return False, "VERIFICATION_RECORD_HASH_INVALID"
-    return True, "ACCEPTED_FOR_SHADOW_EVALUATION"
+    claim = row["verification"]
+    if not isinstance(claim, dict):
+        return False, "VERIFICATION_CLAIM_MISSING"
+    if claim.get("status") != "INDEPENDENTLY_VERIFIED":
+        return False, "NO_INDEPENDENT_VERIFICATION_CLAIM"
+    if not all(_nonempty_string(claim.get(k)) for k in (
+            "verifier", "method", "evidence_uri", "verified_at",
+            "verification_record_uri")):
+        return False, "VERIFICATION_CLAIM_INCOMPLETE"
+    for key in ("evidence_sha256", "verification_record_sha256"):
+        digest = claim.get(key)
+        if not isinstance(digest, str) or not HEX_256.fullmatch(digest):
+            return False, "INVALID_" + key.upper()
+    # Deliberately no trust decision here: all fields above are caller supplied.
+    return True, "STRUCTURALLY_VALID_UNTRUSTED_CLAIM"
 
 
-def _validate_candidates(candidates: Any) -> None:
-    if not isinstance(candidates, list):
-        raise ValueError("candidates must be a list")
-    seen_ids: set[str] = set()
+def _validate_candidates(candidates: Any) -> tuple[bool, str]:
+    if not isinstance(candidates, list) or not candidates:
+        return False, "CANDIDATES_MUST_BE_NONEMPTY_LIST"
+    seen: set[str] = set()
     for row in candidates:
         if not isinstance(row, dict):
-            raise ValueError("every candidate must be an object")
+            return False, "CANDIDATE_NOT_OBJECT"
         candidate_id = row.get("candidate_id")
-        family = row.get("source_family")
-        base_rank = row.get("base_rank")
-        if not isinstance(candidate_id, str) or not candidate_id.strip():
-            raise ValueError("every candidate requires a non-empty candidate_id")
-        if candidate_id in seen_ids:
-            raise ValueError("candidate_id values must be unique")
-        seen_ids.add(candidate_id)
-        if not isinstance(family, str) or not family.strip():
-            raise ValueError("every candidate requires a non-empty source_family")
-        if not isinstance(base_rank, int) or isinstance(base_rank, bool):
-            raise ValueError("every candidate requires integer base_rank")
+        if not _nonempty_string(candidate_id):
+            return False, "CANDIDATE_ID_MISSING"
+        if candidate_id in seen:
+            return False, "DUPLICATE_CANDIDATE_ID"
+        seen.add(candidate_id)
+        if not _nonempty_string(row.get("source_family")):
+            return False, "CANDIDATE_SOURCE_FAMILY_MISSING"
+        rank = row.get("base_rank")
+        if not isinstance(rank, int) or isinstance(rank, bool):
+            return False, "CANDIDATE_BASE_RANK_INVALID"
+    return True, "CANDIDATES_VALID"
 
 
-def build_shadow_feedback(receipts: list[dict[str, Any]],
+def build_shadow_feedback(outcome_claims: list[dict[str, Any]],
                           candidates: list[dict[str, Any]],
                           input_revision: str) -> dict[str, Any]:
-    """Build a deterministic replayable ranking without live policy mutation."""
-    if not isinstance(input_revision, str) or not input_revision.strip():
+    """Compare baseline and claim-conditioned rankings without authority."""
+    if not _nonempty_string(input_revision):
         raise ValueError("input_revision is required")
-    if not isinstance(receipts, list):
-        raise ValueError("receipts must be a list")
-    _validate_candidates(candidates)
-
-    # Reject non-JSON and non-finite inputs rather than producing an unstable digest.
+    if not isinstance(outcome_claims, list):
+        raise ValueError("outcome_claims must be a list")
+    valid_candidates, candidate_reason = _validate_candidates(candidates)
+    if not valid_candidates:
+        raise ValueError(candidate_reason)
     try:
         digest_input = json.dumps(
-            {"input_revision": input_revision, "receipts": receipts,
+            {"input_revision": input_revision, "outcome_claims": outcome_claims,
              "candidates": candidates},
             sort_keys=True, separators=(",", ":"), allow_nan=False
         ).encode()
     except (TypeError, ValueError) as exc:
-        raise ValueError("inputs must be finite, JSON-serializable values") from exc
+        raise ValueError("inputs must be finite JSON-compatible data") from exc
 
-    id_counts = Counter(
-        row.get("receipt_id") for row in receipts
-        if isinstance(row, dict) and isinstance(row.get("receipt_id"), str)
-    )
-    accepted: list[dict[str, Any]] = []
+    eligible_claims: list[dict[str, Any]] = []
     rejected: list[dict[str, str]] = []
     seen: set[str] = set()
-    for row in receipts:
-        ok, reason = _valid_receipt(row)
-        receipt_id = row.get("receipt_id", "<unknown>") if isinstance(row, dict) else "<unknown>"
+    for row in outcome_claims:
+        ok, reason = _valid_outcome_claim(row)
+        claim_id = row.get("receipt_id", "<unknown>") if isinstance(row, dict) else "<unknown>"
         if not ok:
-            rejected.append({"receipt_id": str(receipt_id), "reason": reason})
+            rejected.append({"receipt_id": str(claim_id), "reason": reason})
             continue
-        if id_counts[receipt_id] > 1:
-            rejected.append({"receipt_id": receipt_id, "reason": "DUPLICATE_RECEIPT"})
+        if claim_id in seen:
+            rejected.append({"receipt_id": claim_id, "reason": "DUPLICATE_CLAIM_ID"})
             continue
-        seen.add(receipt_id)
-        accepted.append(row)
+        seen.add(claim_id)
+        eligible_claims.append(row)
 
-    counts = Counter(row["source_family"] for row in accepted)
-    preferred = sorted(counts, key=lambda key: (-counts[key], key))
-    preference_rank = {name: index for index, name in enumerate(preferred)}
-
-    def rank(row: dict[str, Any], use_feedback: bool) -> tuple[Any, ...]:
-        feedback_rank = preference_rank.get(row["source_family"], len(preference_rank)) if use_feedback else 0
-        return (row["base_rank"], feedback_rank, row["candidate_id"])
-
-    baseline = sorted(candidates, key=lambda row: rank(row, False))
-    shadow = sorted(candidates, key=lambda row: rank(row, True))
+    counts = Counter(row["source_family"] for row in eligible_claims)
+    preference = sorted(counts, key=lambda family: (-counts[family], family))
+    preference_rank = {family: index for index, family in enumerate(preference)}
+    baseline = sorted(candidates, key=lambda row: (
+        row["base_rank"], row["candidate_id"]))
+    shadow = sorted(candidates, key=lambda row: (
+        row["base_rank"],
+        preference_rank.get(row["source_family"], len(preference_rank)),
+        row["candidate_id"]))
     baseline_ids = [row["candidate_id"] for row in baseline]
     shadow_ids = [row["candidate_id"] for row in shadow]
     return {
@@ -142,18 +135,20 @@ def build_shadow_feedback(receipts: list[dict[str, Any]],
         "authoritative": False,
         "policy_mutated": False,
         "external_action_taken": False,
+        "caller_supplied_claims_are_authenticated": False,
         "input_revision": input_revision,
         "input_sha256": hashlib.sha256(digest_input).hexdigest(),
-        "accepted_receipt_ids": sorted(seen),
-        "rejected_receipts": rejected,
-        "source_family_counts": dict(sorted(counts.items())),
+        "eligible_untrusted_claim_ids": sorted(seen),
+        "rejected_claims": rejected,
+        "source_family_claim_counts": dict(sorted(counts.items())),
         "baseline_order": baseline_ids,
         "shadow_order": shadow_ids,
         "decision_changed": baseline_ids != shadow_ids,
-        "proposed_source_family_preference": preferred,
+        "proposed_source_family_preference": preference,
         "evidence_boundary": (
-            "Structural validation only: upstream independent verification is a prerequisite, "
-            "not performed by this module. This output is a shadow ranking, not proof of "
-            "causal benefit and not an update to policy.json."
+            "The module validates claim structure only. It does not authenticate "
+            "the verifier, validate evidence URIs or hashes against external systems, "
+            "or establish that payment occurred. Synthetic/caller-supplied claims "
+            "may change this shadow ranking; they cannot authorize production policy."
         ),
     }
