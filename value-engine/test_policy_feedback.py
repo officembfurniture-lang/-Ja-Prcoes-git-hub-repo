@@ -3,10 +3,10 @@ import unittest
 from policy_feedback import build_shadow_feedback
 
 
-def attestation():
+def verification_claim():
     return {
         "status": "INDEPENDENTLY_VERIFIED",
-        "verifier": "independent-test-verifier",
+        "verifier": "untrusted-caller-claim",
         "method": "public_settlement_record",
         "evidence_uri": "https://example.invalid/settlement/1",
         "evidence_sha256": "a" * 64,
@@ -16,16 +16,16 @@ def attestation():
     }
 
 
-def receipt(**overrides):
+def outcome_claim(**overrides):
     row = {
-        "receipt_id": "receipt-1",
+        "receipt_id": "claim-1",
         "settlement_status": "PAID",
         "source_family": "source-A",
         "opportunity_class": "funded_task",
         "amount": 5,
         "currency": "RTC",
         "received_at": "2026-01-01T00:00:00Z",
-        "verification": attestation(),
+        "verification": verification_claim(),
     }
     row.update(overrides)
     return row
@@ -38,79 +38,86 @@ class PolicyFeedbackTests(unittest.TestCase):
             {"candidate_id": "a", "source_family": "source-A", "base_rank": 1},
         ]
 
-    def test_verified_paid_receipt_changes_tied_shadow_selection(self):
-        result = build_shadow_feedback([receipt(source_family="source-B")], self.candidates, "frozen-input-v1")
+    def test_structurally_valid_claim_changes_only_shadow_tie_break(self):
+        result = build_shadow_feedback(
+            [outcome_claim(source_family="source-B")], self.candidates, "frozen-input-v1")
         self.assertEqual(result["baseline_order"], ["a", "b"])
         self.assertEqual(result["shadow_order"], ["b", "a"])
         self.assertTrue(result["decision_changed"])
         self.assertFalse(result["policy_mutated"])
         self.assertFalse(result["authoritative"])
+        self.assertFalse(result["caller_supplied_claims_are_authenticated"])
 
-    def test_unverified_receipt_cannot_change_policy_candidate(self):
-        row = receipt(verification={**attestation(), "status": "UNVERIFIED"})
+    def test_claim_without_independent_verification_statement_is_rejected(self):
+        row = outcome_claim(verification={**verification_claim(), "status": "UNVERIFIED"})
         result = build_shadow_feedback([row], self.candidates, "frozen-input-v1")
         self.assertEqual(result["shadow_order"], result["baseline_order"])
-        self.assertFalse(result["decision_changed"])
-        self.assertEqual(result["rejected_receipts"][0]["reason"],
-                         "NOT_INDEPENDENTLY_VERIFIED")
+        self.assertEqual(result["rejected_claims"][0]["reason"],
+                         "NO_INDEPENDENT_VERIFICATION_CLAIM")
 
-    def test_missing_hash_or_provenance_fails_closed(self):
-        row = receipt(verification={**attestation(), "evidence_sha256": "bad"})
+    def test_malformed_hash_is_rejected(self):
+        row = outcome_claim(verification={**verification_claim(), "evidence_sha256": "bad"})
         result = build_shadow_feedback([row], self.candidates, "frozen-input-v1")
         self.assertEqual(result["shadow_order"], result["baseline_order"])
-        self.assertEqual(result["rejected_receipts"][0]["reason"],
-                         "EVIDENCE_HASH_INVALID")
+        self.assertEqual(result["rejected_claims"][0]["reason"],
+                         "INVALID_EVIDENCE_SHA256")
 
-    def test_not_paid_cannot_create_preference(self):
+    def test_not_paid_claim_cannot_create_preference(self):
         result = build_shadow_feedback(
-            [receipt(settlement_status="ACCEPTED")], self.candidates, "frozen-input-v1")
+            [outcome_claim(settlement_status="ACCEPTED")], self.candidates, "frozen-input-v1")
         self.assertEqual(result["shadow_order"], result["baseline_order"])
-        self.assertEqual(result["rejected_receipts"][0]["reason"], "NOT_PAID")
+        self.assertEqual(result["rejected_claims"][0]["reason"], "NOT_CLAIMED_PAID")
 
-    def test_duplicate_receipt_ids_reject_all_conflicting_copies(self):
-        first = receipt(source_family="source-A")
-        second = receipt(source_family="source-B")
-        result = build_shadow_feedback([first, second], self.candidates, "frozen-input-v1")
-        self.assertEqual(result["accepted_receipt_ids"], [])
-        self.assertEqual(result["source_family_counts"], {})
-        self.assertEqual([x["reason"] for x in result["rejected_receipts"]],
-                         ["DUPLICATE_RECEIPT", "DUPLICATE_RECEIPT"])
+    def test_duplicate_claim_id_is_counted_once(self):
+        row = outcome_claim()
+        result = build_shadow_feedback([row, {**row}], self.candidates, "frozen-input-v1")
+        self.assertEqual(result["source_family_claim_counts"], {"source-A": 1})
+        self.assertEqual(result["rejected_claims"][0]["reason"], "DUPLICATE_CLAIM_ID")
 
     def test_replay_is_deterministic_and_input_bound(self):
-        first = build_shadow_feedback([receipt()], self.candidates, "frozen-input-v1")
-        second = build_shadow_feedback([receipt()], self.candidates, "frozen-input-v1")
-        changed = build_shadow_feedback([receipt()], self.candidates, "frozen-input-v2")
+        first = build_shadow_feedback([outcome_claim()], self.candidates, "frozen-input-v1")
+        second = build_shadow_feedback([outcome_claim()], self.candidates, "frozen-input-v1")
+        changed = build_shadow_feedback([outcome_claim()], self.candidates, "frozen-input-v2")
         self.assertEqual(first, second)
         self.assertNotEqual(first["input_sha256"], changed["input_sha256"])
 
-    def test_no_receipts_means_no_policy_delta(self):
+    def test_no_claims_means_no_ranking_delta(self):
         result = build_shadow_feedback([], self.candidates, "frozen-input-v1")
         self.assertEqual(result["shadow_order"], result["baseline_order"])
         self.assertFalse(result["decision_changed"])
         self.assertEqual(result["proposed_source_family_preference"], [])
 
-    def test_non_finite_amount_fails_closed(self):
-        with self.assertRaises(ValueError):
-            build_shadow_feedback([receipt(amount=float("nan"))], self.candidates, "frozen-input-v1")
+    def test_nan_and_infinite_amounts_are_rejected(self):
+        for amount in (float("nan"), float("inf"), float("-inf")):
+            result = build_shadow_feedback(
+                [outcome_claim(amount=amount)], self.candidates, "frozen-input-v1")
+            self.assertEqual(result["rejected_claims"][0]["reason"], "INVALID_AMOUNT")
 
-    def test_naive_or_malformed_receipt_timestamp_is_rejected(self):
-        result = build_shadow_feedback(
-            [receipt(received_at="2026-01-01T00:00:00")], self.candidates, "frozen-input-v1")
-        self.assertEqual(result["accepted_receipt_ids"], [])
-        self.assertEqual(result["rejected_receipts"][0]["reason"], "INVALID_RECEIVED_AT")
-
-    def test_duplicate_candidate_ids_are_rejected(self):
-        duplicate_candidates = [
-            {"candidate_id": "same", "source_family": "source-A", "base_rank": 1},
-            {"candidate_id": "same", "source_family": "source-B", "base_rank": 1},
+    def test_malformed_candidates_fail_closed_with_clear_error(self):
+        cases = [
+            ([], "CANDIDATES_MUST_BE_NONEMPTY_LIST"),
+            ([{"candidate_id": "a", "source_family": "x"}], "CANDIDATE_BASE_RANK_INVALID"),
+            ([{"candidate_id": "a", "source_family": "x", "base_rank": True}],
+             "CANDIDATE_BASE_RANK_INVALID"),
+            ([{"candidate_id": "a", "source_family": "x", "base_rank": 1},
+              {"candidate_id": "a", "source_family": "y", "base_rank": 1}],
+             "DUPLICATE_CANDIDATE_ID"),
         ]
-        with self.assertRaisesRegex(ValueError, "candidate_id values must be unique"):
-            build_shadow_feedback([], duplicate_candidates, "frozen-input-v1")
+        for candidates, expected in cases:
+            with self.subTest(candidates=candidates):
+                with self.assertRaisesRegex(ValueError, expected):
+                    build_shadow_feedback([], candidates, "frozen-input-v1")
 
-    def test_boolean_base_rank_is_rejected(self):
-        bad_candidates = [{"candidate_id": "x", "source_family": "source-A", "base_rank": True}]
-        with self.assertRaisesRegex(ValueError, "integer base_rank"):
-            build_shadow_feedback([], bad_candidates, "frozen-input-v1")
+    def test_non_json_and_nonfinite_candidate_input_fails_closed(self):
+        candidates = [{"candidate_id": "a", "source_family": "x", "base_rank": 1,
+                       "extra": float("nan")}]
+        with self.assertRaisesRegex(ValueError, "finite JSON-compatible"):
+            build_shadow_feedback([], candidates, "frozen-input-v1")
+
+    def test_bad_received_at_is_rejected(self):
+        result = build_shadow_feedback(
+            [outcome_claim(received_at="not-a-date")], self.candidates, "frozen-input-v1")
+        self.assertEqual(result["rejected_claims"][0]["reason"], "INVALID_RECEIVED_AT")
 
 
 if __name__ == "__main__":
