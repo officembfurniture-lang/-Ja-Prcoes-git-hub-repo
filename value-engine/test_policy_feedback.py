@@ -90,12 +90,14 @@ class PolicyFeedbackTests(unittest.TestCase):
         self.assertFalse(result["decision_changed"])
         self.assertEqual(result["proposed_source_family_preference"], [])
 
-    def test_non_finite_claim_amounts_fail_closed(self):
+    def test_non_finite_claim_amounts_are_hashable_and_rejected(self):
         for amount in (float("nan"), float("inf"), float("-inf")):
             with self.subTest(amount=amount):
-                with self.assertRaisesRegex(ValueError, "finite JSON-compatible"):
-                    build_shadow_feedback(
-                        [outcome_claim(amount=amount)], self.candidates, "frozen-input-v1")
+                result = build_shadow_feedback(
+                    [outcome_claim(amount=amount)], self.candidates, "frozen-input-v1")
+                self.assertEqual(result["eligible_untrusted_claim_ids"], [])
+                self.assertEqual(result["rejected_claims"][0]["reason"], "INVALID_AMOUNT")
+                self.assertFalse(result["decision_changed"])
 
     def test_malformed_candidates_fail_closed_with_clear_error(self):
         cases = [
