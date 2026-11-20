@@ -1,0 +1,89 @@
+{
+  "schema": "value-engine.external-readback-capture/v1",
+  "captured_on": "2026-11-20",
+  "source": {
+    "kind": "public_wallet_history_api",
+    "url": "https://rustchain.org/wallet/history?miner_id=officembfurniture-lang&limit=50",
+    "wallet_id": "officembfurniture-lang",
+    "authentication": "none",
+    "retrieval_method": "read-only external fetch",
+    "limitations": [
+      "This is an API readback, not a cryptographic signature over this capture.",
+      "The API operator controls the published response; the capture does not independently audit node internals.",
+      "A confirmed RTC transfer is a non-cash crypto-asset receipt, not fiat income."
+    ]
+  },
+  "canonical_response_sha256": "2aafc368cb80d581d71074a2d902f4ccf29c13e83fd3f8c5197a034985322ee7",
+  "hash_method": "SHA-256 of the compact canonical JSON response encoded as UTF-8, with sorted keys and no insignificant whitespace",
+  "response": {
+    "miner_id": "officembfurniture-lang",
+    "ok": true,
+    "total": 2,
+    "transactions": [
+      {
+        "amount": 5.0,
+        "epoch": 42345,
+        "from": "founder_community",
+        "memo": "bounty rustchain-bounties#1102 - /agents directory route ignores the q parameter (filters only is_banned) - @officembfurniture-lang",
+        "reason": "transfer_in:founder_community:d31205931f81161a6579750417a3f5c6",
+        "status": "confirmed",
+        "timestamp": 1790376601,
+        "tx_hash": "d31205931f81161a6579750417a3f5c6",
+        "type": "transfer_in"
+      },
+      {
+        "amount": 2.0,
+        "epoch": 40715,
+        "from": "founder_community",
+        "memo": "Bounty #13949 Powered-by-RustChain badge on existing repo (created 2026-07-12) - officembfurniture-lang (hosted handle wallet)",
+        "reason": "transfer_in:founder_community:5a33672d476814b1c5b1abf4acd396f5",
+        "status": "confirmed",
+        "timestamp": 1789222801,
+        "tx_hash": "5a33672d476814b1c5b1abf4acd396f5",
+        "type": "transfer_in"
+      }
+    ]
+  },
+  "matches": [
+    {
+      "outcome_id": "Scottcjn/rustchain-bounties#1102:bottube-agents-search",
+      "amount": 5,
+      "currency": "RTC",
+      "transaction_hash": "d31205931f81161a6579750417a3f5c6",
+      "status": "confirmed",
+      "memo_matches_outcome": true
+    },
+    {
+      "outcome_id": "Scottcjn/rustchain-bounties#13949",
+      "amount": 2,
+      "currency": "RTC",
+      "transaction_hash": "5a33672d476814b1c5b1abf4acd396f5",
+      "status": "confirmed",
+      "memo_matches_outcome": true
+    }
+  ],
+  "attribution_checks": {
+    "bounty_13949": {
+      "maintainer_acceptance_comment_found": true,
+      "acceptance_comment_url": "https://github.com/Scottcjn/rustchain-bounties/issues/13949#issuecomment-5635850706",
+      "acceptance_amount_rtc": 2
+    },
+    "bounty_1102": {
+      "ledger_memo_identifies_bounty_and_handle": true,
+      "matching_public_acceptance_comment_found": false,
+      "matching_public_claim_by_handle_found": false,
+      "exact_underlying_bug_report_link": null,
+      "attribution_status": "PAYMENT_MEMO_MATCHES_BUT_PUBLIC_ACCEPTANCE_CHAIN_UNRESOLVED",
+      "note": "The bounty issue is a generic BoTTube bug-hunt thread with many submissions. A similarly worded closed issue #1893 exists, but it is authored by another account and is not attributed to officembfurniture-lang here."
+    }
+  },
+  "assessment": {
+    "public_api_readback_matches_both_historical_outcome_records": true,
+    "confirmed_rtc_total": 7,
+    "fiat_cash_total": 0,
+    "bounty_13949_acceptance_chain": "PUBLIC_MAINTAINER_ACCEPTANCE_AND_LEDGER_TRANSFER",
+    "bounty_1102_acceptance_chain": "LEDGER_TRANSFER_CONFIRMED; EXACT_PUBLIC_ACCEPTANCE_ATTRIBUTION_UNRESOLVED",
+    "production_policy_updated": false,
+    "production_authority_granted": false
+  }
+}

@@ -411,3 +411,24 @@ A successful file commit is not a successful CI run. Production promotion requir
 ## Portfolio health (read only)
 
 Run `python3 value-engine/health_report.py` for a JSON snapshot of the observation-to-settlement funnel. This command reads state without changing it, contacting providers, or treating acceptance as payment. Synthetic tests are in `test_health_report.py` and are included by the existing `test_*.py` CI discovery pattern. A report is an internal diagnostic, not independent proof of external use or cash realization.
+
+
+## Historical wallet receipt readback (shadow evidence only)
+
+`receipt_readback.py` validates the dated public wallet-history capture in
+`evidence/rustchain-wallet-readback-2026-11-20.json` against the historical
+`outcomes.ndjson` rows. It recomputes the canonical response SHA-256 and checks
+transaction hash, wallet, incoming direction, confirmed status, amount, RTC
+currency, UTC receipt time and exact memo. It separately reports whether a
+public maintainer acceptance chain was found.
+
+Current captured result: two matching incoming transfers totaling 7 RTC.
+Bounty #13949 has a matching public acceptance comment; bounty #1102 has a
+matching payment memo but its public acceptance attribution remains unresolved.
+RTC is a crypto-asset transfer, not fiat cash.
+
+The verifier consumes a saved capture; it performs no network request and
+does not authenticate the wallet API operator or prove the capture's origin.
+Its output is non-authoritative and must not feed production policy without a
+separate trusted acquisition and verification path. Regression tests run in
+the triage-shadow workflow and the repository self-test.
