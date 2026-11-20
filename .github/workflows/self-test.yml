@@ -30,4 +30,7 @@ jobs:
         if: ${{ hashFiles('value-engine/validate.py') != '' }}
         run: |
           python3 value-engine/validate.py
-          python3 -m py_compile value-engine/cycle.py value-engine/validate.py
+          python3 -m py_compile value-engine/cycle.py value-engine/validate.py value-engine/policy_feedback.py
+      - name: Run outcome feedback regression tests
+        working-directory: value-engine
+        run: python3 -m unittest -v test_policy_feedback.py
