@@ -62,10 +62,27 @@
       "memo_matches_outcome": true
     }
   ],
+  "attribution_checks": {
+    "bounty_13949": {
+      "maintainer_acceptance_comment_found": true,
+      "acceptance_comment_url": "https://github.com/Scottcjn/rustchain-bounties/issues/13949#issuecomment-5635850706",
+      "acceptance_amount_rtc": 2
+    },
+    "bounty_1102": {
+      "ledger_memo_identifies_bounty_and_handle": true,
+      "matching_public_acceptance_comment_found": false,
+      "matching_public_claim_by_handle_found": false,
+      "exact_underlying_bug_report_link": null,
+      "attribution_status": "PAYMENT_MEMO_MATCHES_BUT_PUBLIC_ACCEPTANCE_CHAIN_UNRESOLVED",
+      "note": "The bounty issue is a generic BoTTube bug-hunt thread with many submissions. A similarly worded closed issue #1893 exists, but it is authored by another account and is not attributed to officembfurniture-lang here."
+    }
+  },
   "assessment": {
     "public_api_readback_matches_both_historical_outcome_records": true,
     "confirmed_rtc_total": 7,
     "fiat_cash_total": 0,
+    "bounty_13949_acceptance_chain": "PUBLIC_MAINTAINER_ACCEPTANCE_AND_LEDGER_TRANSFER",
+    "bounty_1102_acceptance_chain": "LEDGER_TRANSFER_CONFIRMED; EXACT_PUBLIC_ACCEPTANCE_ATTRIBUTION_UNRESOLVED",
     "production_policy_updated": false,
     "production_authority_granted": false
   }
