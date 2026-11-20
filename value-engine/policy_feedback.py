@@ -81,7 +81,7 @@ def build_shadow_feedback(receipts: list[dict[str, Any]],
             raise ValueError("every candidate requires integer base_rank")
         family = row.get("source_family")
         feedback_rank = preference_rank.get(family, len(preference_rank)) if use_feedback else 0
-        return (feedback_rank, base_rank, str(row.get("candidate_id", "")))
+        return (base_rank, feedback_rank, str(row.get("candidate_id", "")))
 
     baseline = sorted(candidates, key=lambda row: (row["base_rank"], str(row.get("candidate_id", ""))))
     shadow = sorted(candidates, key=lambda row: rank(row, True))
@@ -95,7 +95,7 @@ def build_shadow_feedback(receipts: list[dict[str, Any]],
         for row in accepted
     ]
     digest_input = json.dumps(
-        {"input_revision": input_revision, "receipts": accepted_material,
+        {"input_revision": input_revision, "receipts": receipts,
          "candidates": candidates}, sort_keys=True, separators=(",", ":")
     ).encode()
     return {
