@@ -33,6 +33,25 @@ def _valid_timestamp(value: Any) -> bool:
         return False
 
 
+def _canonicalize(value: Any, *, allow_nonfinite: bool = False) -> Any:
+    """Create stable JSON input; malformed numeric claims remain hashable."""
+    if isinstance(value, float) and not math.isfinite(value):
+        if not allow_nonfinite:
+            raise ValueError("non-finite float")
+        marker = "nan" if math.isnan(value) else ("+infinity" if value > 0 else "-infinity")
+        return {"__nonfinite_float__": marker}
+    if isinstance(value, dict):
+        if not all(isinstance(key, str) for key in value):
+            raise TypeError("JSON object keys must be strings")
+        return {key: _canonicalize(item, allow_nonfinite=allow_nonfinite)
+                for key, item in value.items()}
+    if isinstance(value, list):
+        return [_canonicalize(item, allow_nonfinite=allow_nonfinite) for item in value]
+    if value is None or isinstance(value, (str, int, bool, float)):
+        return value
+    raise TypeError("unsupported JSON value")
+
+
 def _valid_outcome_claim(row: Any) -> tuple[bool, str]:
     if not isinstance(row, dict):
         return False, "CLAIM_NOT_OBJECT"
@@ -106,13 +125,16 @@ def build_shadow_feedback(outcome_claims: list[dict[str, Any]],
     if not valid_candidates:
         raise ValueError(candidate_reason)
     try:
+        canonical_input = {
+            "input_revision": input_revision,
+            "outcome_claims": _canonicalize(outcome_claims, allow_nonfinite=True),
+            "candidates": _canonicalize(candidates),
+        }
         digest_input = json.dumps(
-            {"input_revision": input_revision, "outcome_claims": outcome_claims,
-             "candidates": candidates},
-            sort_keys=True, separators=(",", ":"), allow_nan=False
+            canonical_input, sort_keys=True, separators=(",", ":"), allow_nan=False
         ).encode()
     except (TypeError, ValueError) as exc:
-        raise ValueError("inputs must be finite JSON-compatible data") from exc
+        raise ValueError("inputs must be finite JSON-compatible data (except malformed numeric claims)") from exc
 
     claim_id_counts = Counter(
         row.get("receipt_id") for row in outcome_claims
