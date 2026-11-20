@@ -73,8 +73,9 @@ def verify_wallet_readback(capture: dict[str, Any],
                     and tx.get("memo") == outcome.get("payment_record_memo"),
         }
         payment_ok = all(checks.values())
+        bounty_number = str(outcome.get("opportunity_id", "")).split("#")[-1].split(":")[0]
         attribution = capture.get("attribution_checks", {}).get(
-            str(outcome.get("opportunity_id", "")).split("#")[-1].split(":")[0], {})
+            "bounty_" + bounty_number, {})
         acceptance = ("PUBLIC_ACCEPTANCE_CHAIN_FOUND"
                       if attribution.get("maintainer_acceptance_comment_found") is True
                       else "PUBLIC_ACCEPTANCE_CHAIN_UNRESOLVED")
