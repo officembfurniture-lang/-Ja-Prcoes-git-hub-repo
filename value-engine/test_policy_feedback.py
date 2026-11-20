@@ -68,11 +68,14 @@ class PolicyFeedbackTests(unittest.TestCase):
         self.assertEqual(result["shadow_order"], result["baseline_order"])
         self.assertEqual(result["rejected_claims"][0]["reason"], "NOT_CLAIMED_PAID")
 
-    def test_duplicate_claim_id_is_counted_once(self):
-        row = outcome_claim()
-        result = build_shadow_feedback([row, {**row}], self.candidates, "frozen-input-v1")
-        self.assertEqual(result["source_family_claim_counts"], {"source-A": 1})
-        self.assertEqual(result["rejected_claims"][0]["reason"], "DUPLICATE_CLAIM_ID")
+    def test_all_copies_of_duplicate_claim_id_are_rejected(self):
+        first = outcome_claim(source_family="source-A")
+        second = outcome_claim(source_family="source-B")
+        result = build_shadow_feedback([first, second], self.candidates, "frozen-input-v1")
+        self.assertEqual(result["eligible_untrusted_claim_ids"], [])
+        self.assertEqual(result["source_family_claim_counts"], {})
+        self.assertEqual([x["reason"] for x in result["rejected_claims"]],
+                         ["DUPLICATE_CLAIM_ID", "DUPLICATE_CLAIM_ID"])
 
     def test_replay_is_deterministic_and_input_bound(self):
         first = build_shadow_feedback([outcome_claim()], self.candidates, "frozen-input-v1")
@@ -87,11 +90,12 @@ class PolicyFeedbackTests(unittest.TestCase):
         self.assertFalse(result["decision_changed"])
         self.assertEqual(result["proposed_source_family_preference"], [])
 
-    def test_nan_and_infinite_amounts_are_rejected(self):
+    def test_non_finite_claim_amounts_fail_closed(self):
         for amount in (float("nan"), float("inf"), float("-inf")):
-            result = build_shadow_feedback(
-                [outcome_claim(amount=amount)], self.candidates, "frozen-input-v1")
-            self.assertEqual(result["rejected_claims"][0]["reason"], "INVALID_AMOUNT")
+            with self.subTest(amount=amount):
+                with self.assertRaisesRegex(ValueError, "finite JSON-compatible"):
+                    build_shadow_feedback(
+                        [outcome_claim(amount=amount)], self.candidates, "frozen-input-v1")
 
     def test_malformed_candidates_fail_closed_with_clear_error(self):
         cases = [
@@ -114,10 +118,17 @@ class PolicyFeedbackTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "finite JSON-compatible"):
             build_shadow_feedback([], candidates, "frozen-input-v1")
 
-    def test_bad_received_at_is_rejected(self):
+    def test_naive_received_at_is_rejected(self):
         result = build_shadow_feedback(
-            [outcome_claim(received_at="not-a-date")], self.candidates, "frozen-input-v1")
+            [outcome_claim(received_at="2026-01-01T00:00:00")],
+            self.candidates, "frozen-input-v1")
         self.assertEqual(result["rejected_claims"][0]["reason"], "INVALID_RECEIVED_AT")
+
+    def test_naive_verified_at_is_rejected(self):
+        claim = outcome_claim()
+        claim["verification"]["verified_at"] = "2026-01-02T00:00:00"
+        result = build_shadow_feedback([claim], self.candidates, "frozen-input-v1")
+        self.assertEqual(result["rejected_claims"][0]["reason"], "INVALID_VERIFIED_AT")
 
 
 if __name__ == "__main__":
