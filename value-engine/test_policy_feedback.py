@@ -67,12 +67,14 @@ class PolicyFeedbackTests(unittest.TestCase):
         self.assertEqual(result["shadow_order"], result["baseline_order"])
         self.assertEqual(result["rejected_receipts"][0]["reason"], "NOT_PAID")
 
-    def test_duplicate_receipt_is_counted_once(self):
-        row = receipt()
-        duplicate = {**row}
-        result = build_shadow_feedback([row, duplicate], self.candidates, "frozen-input-v1")
-        self.assertEqual(result["source_family_counts"], {"source-A": 1})
-        self.assertEqual(result["rejected_receipts"][0]["reason"], "DUPLICATE_RECEIPT")
+    def test_duplicate_receipt_ids_reject_all_conflicting_copies(self):
+        first = receipt(source_family="source-A")
+        second = receipt(source_family="source-B")
+        result = build_shadow_feedback([first, second], self.candidates, "frozen-input-v1")
+        self.assertEqual(result["accepted_receipt_ids"], [])
+        self.assertEqual(result["source_family_counts"], {})
+        self.assertEqual([x["reason"] for x in result["rejected_receipts"]],
+                         ["DUPLICATE_RECEIPT", "DUPLICATE_RECEIPT"])
 
     def test_replay_is_deterministic_and_input_bound(self):
         first = build_shadow_feedback([receipt()], self.candidates, "frozen-input-v1")
@@ -86,6 +88,29 @@ class PolicyFeedbackTests(unittest.TestCase):
         self.assertEqual(result["shadow_order"], result["baseline_order"])
         self.assertFalse(result["decision_changed"])
         self.assertEqual(result["proposed_source_family_preference"], [])
+
+    def test_non_finite_amount_fails_closed(self):
+        with self.assertRaises(ValueError):
+            build_shadow_feedback([receipt(amount=float("nan"))], self.candidates, "frozen-input-v1")
+
+    def test_naive_or_malformed_receipt_timestamp_is_rejected(self):
+        result = build_shadow_feedback(
+            [receipt(received_at="2026-01-01T00:00:00")], self.candidates, "frozen-input-v1")
+        self.assertEqual(result["accepted_receipt_ids"], [])
+        self.assertEqual(result["rejected_receipts"][0]["reason"], "INVALID_RECEIVED_AT")
+
+    def test_duplicate_candidate_ids_are_rejected(self):
+        duplicate_candidates = [
+            {"candidate_id": "same", "source_family": "source-A", "base_rank": 1},
+            {"candidate_id": "same", "source_family": "source-B", "base_rank": 1},
+        ]
+        with self.assertRaisesRegex(ValueError, "candidate_id values must be unique"):
+            build_shadow_feedback([], duplicate_candidates, "frozen-input-v1")
+
+    def test_boolean_base_rank_is_rejected(self):
+        bad_candidates = [{"candidate_id": "x", "source_family": "source-A", "base_rank": True}]
+        with self.assertRaisesRegex(ValueError, "integer base_rank"):
+            build_shadow_feedback([], bad_candidates, "frozen-input-v1")
 
 
 if __name__ == "__main__":
