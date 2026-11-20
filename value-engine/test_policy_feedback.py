@@ -39,7 +39,7 @@ class PolicyFeedbackTests(unittest.TestCase):
         ]
 
     def test_verified_paid_receipt_changes_tied_shadow_selection(self):
-        result = build_shadow_feedback([receipt()], self.candidates, "frozen-input-v1")
+        result = build_shadow_feedback([receipt(source_family="source-B")], self.candidates, "frozen-input-v1")
         self.assertEqual(result["baseline_order"], ["a", "b"])
         self.assertEqual(result["shadow_order"], ["b", "a"])
         self.assertTrue(result["decision_changed"])
